@@ -27,10 +27,10 @@ logo_altura: 56
 modelo: google/gemma-4-31b-it:free
 
 # Modelos reserva: se o principal estiver lotado ou fora do ar, o OpenRouter tenta estes, na ordem.
-# "openrouter/free" escolhe qualquer modelo gratuito disponível, bom como última opção.
+# Use só modelos de conversa. Evite "openrouter/free": ele pode cair num modelo de moderação.
 modelos_reserva:
   - qwen/qwen3.8-27b:free
-  - openrouter/free
+  - google/gemma-4-26b-a4b-it:free
 
 # Limite de tamanho de cada resposta (em tokens, aproximadamente 3/4 de palavra)
 max_tokens: 800
