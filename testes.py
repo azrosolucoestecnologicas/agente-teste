@@ -49,7 +49,7 @@ except SyntaxError as e:
     erros.append(f"erro de sintaxe no app.py, linha {e.lineno}: {e.msg}")
 
 # 7. Nenhuma chave de API foi colocada por engano nos arquivos
-padrao = re.compile(r"sk-ant-[A-Za-z0-9_\-]{10,}|hf_[A-Za-z0-9]{20,}")
+padrao = re.compile(r"sk-or-[A-Za-z0-9_\-]{10,}|sk-ant-[A-Za-z0-9_\-]{10,}|hf_[A-Za-z0-9]{20,}")
 for arquivo in Path(".").rglob("*"):
     if ".git" in arquivo.parts or not arquivo.is_file():
         continue

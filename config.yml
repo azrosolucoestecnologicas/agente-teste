@@ -21,8 +21,10 @@ logo: logo.svg
 # Altura da logo em pixels (a largura se ajusta sozinha)
 logo_altura: 56
 
-# Modelo usado nas respostas
-modelo: claude-haiku-4-5-20251001
+# Modelo usado nas respostas, no formato do OpenRouter: fornecedor/modelo
+# Modelos gratuitos terminam em ":free". Para achar outros: https://openrouter.ai/models,
+# filtro "Prompt pricing" em FREE. Gratuitos têm limite de uso e a lista muda com o tempo.
+modelo: google/gemma-4-31b-it:free
 
 # Limite de tamanho de cada resposta (em tokens, aproximadamente 3/4 de palavra)
 max_tokens: 800

@@ -5,9 +5,9 @@ Toda a personalização fica no config.yml; este arquivo quase nunca precisa mud
 import os
 from pathlib import Path
 
-import anthropic
 import gradio as gr
 import yaml
+from openai import OpenAI
 
 # O Space roda em hardware ZeroGPU, que exige pelo menos uma função com @spaces.GPU.
 # O pacote "spaces" já vem instalado no Hugging Face; no computador local ele não existe,
@@ -34,8 +34,9 @@ PALETAS = {
 
 # A chave NÃO está no código. O Hugging Face injeta como variável de ambiente,
 # a partir do que você cadastrou em Settings > Variables and secrets.
-CHAVE = os.environ.get("ANTHROPIC_API_KEY")
-cliente = anthropic.Anthropic(api_key=CHAVE) if CHAVE else None
+# O OpenRouter usa o mesmo formato da API da OpenAI, então basta trocar o endereço.
+CHAVE = os.environ.get("OPENROUTER_API_KEY")
+cliente = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=CHAVE) if CHAVE else None
 
 
 def logo_html() -> str:
@@ -51,7 +52,7 @@ def logo_html() -> str:
 @spaces.GPU(duration=1)
 def gpu_minima():
     """Função mínima só para o ZeroGPU aceitar o Space. Nunca é chamada:
-    as respostas vêm da API da Anthropic e não usam GPU."""
+    as respostas vêm da API do OpenRouter e não usam GPU."""
     return None
 
 
@@ -59,12 +60,13 @@ def responder(mensagem, historico):
     """Recebe a pergunta e o histórico da sessão e devolve a resposta aos poucos."""
     if cliente is None:
         yield ("A chave da API não foi configurada. No Space, abra Settings, "
-               "Variables and secrets, e cadastre ANTHROPIC_API_KEY.")
+               "Variables and secrets, e cadastre OPENROUTER_API_KEY.")
         return
 
     # O modelo não lembra de nada sozinho: reenviamos a conversa inteira a cada pergunta.
     # No Gradio 6 o "content" chega como lista de partes ({"type": "text", "text": ...}).
-    mensagens = []
+    # No formato OpenAI o prompt de sistema vai como a primeira mensagem da lista.
+    mensagens = [{"role": "system", "content": CONFIG["prompt_sistema"]}]
     for m in historico:
         conteudo = m.get("content")
         if isinstance(conteudo, list):
@@ -74,14 +76,18 @@ def responder(mensagem, historico):
     mensagens.append({"role": "user", "content": mensagem})
 
     texto = ""
-    with cliente.messages.stream(
+    fluxo = cliente.chat.completions.create(
         model=CONFIG["modelo"],
         max_tokens=int(CONFIG.get("max_tokens", 800)),
-        system=CONFIG["prompt_sistema"],
         messages=mensagens,
-    ) as fluxo:
-        for pedaco in fluxo.text_stream:
-            texto += pedaco
+        stream=True,
+        # Alguns modelos "pensam" antes de responder e gastam o max_tokens nisso.
+        # Desligamos o raciocínio para a resposta vir direto; quem não tem, ignora.
+        extra_body={"reasoning": {"enabled": False}},
+    )
+    for pedaco in fluxo:
+        if pedaco.choices and pedaco.choices[0].delta.content:
+            texto += pedaco.choices[0].delta.content
             yield texto
 
 
