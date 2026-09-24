@@ -70,12 +70,22 @@ Copie o texto abaixo e cole no Claude Code ou no Codex, na mesma pasta deste arq
 Leia o arquivo IDEIA-parte1.md. Ele descreve, em linguagem simples, o projeto que eu quero construir.
 
 Antes de escrever qualquer coisa, me faça as perguntas que faltarem para você decidir
-(por exemplo: quais provedores de IA e modelos usar, meu usuário no Hugging Face, o nome do Space,
+(por exemplo: quais modelos usar em cada provedor, meu usuário no Hugging Face, o nome do Space,
 se o Space usa CPU ou ZeroGPU). Faça no máximo 5 perguntas, uma lista só.
+
+Requisito obrigatório: o app deve aceitar três tipos de chave de API, OpenRouter
+(OPENROUTER_API_KEY), Anthropic (ANTHROPIC_API_KEY) e OpenAI (OPENAI_API_KEY).
+- Funciona com qualquer uma delas sozinha; não é preciso ter as três.
+- No arquivo de configuração eu escolho a ordem de preferência e o modelo de cada provedor.
+- O app usa só os provedores que têm chave cadastrada. Se um falhar antes de responder
+  (limite, sem crédito, fora do ar), tenta o próximo; se todos falharem, mostra no chat o motivo de cada um.
+- Para Anthropic, use o SDK oficial "anthropic"; para OpenAI e OpenRouter, o SDK "openai"
+  (no OpenRouter, com base_url https://openrouter.ai/api/v1).
+- As chaves ficam só nos secrets do Hugging Face, nunca no código.
 
 Depois, gere o arquivo SPEC-parte1-cicd-deploy.md no formato spec-driven, com:
 1. Objetivo, público e escopo (o que entra e o que fica para as partes 2 e 3)
-2. Stack escolhida (IA via OpenRouter, Anthropic ou OpenAI, com troca automática) e restrições conhecidas do Hugging Face Spaces
+2. Stack escolhida (as três chaves de IA acima, com troca automática) e restrições conhecidas do Hugging Face Spaces
 3. Estrutura de arquivos do projeto
 4. Contrato do arquivo de configuração: cada campo, se é obrigatório, valores aceitos e padrão
 5. Requisitos funcionais numerados (RF1, RF2...)
