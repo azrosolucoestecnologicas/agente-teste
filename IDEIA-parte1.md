@@ -11,7 +11,11 @@ No meu caso, o assistente vai ajudar alunos com dúvidas sobre **engenharia de d
 
 ## Qual IA eu quero usar
 
-Quero usar o **OpenRouter**. Com uma única conta e uma única chave, ele dá acesso a modelos de vários fornecedores (Claude, GPT, Gemini, Llama e outros). Assim eu posso trocar de modelo só mudando o nome dele na configuração, sem mexer no código e sem criar conta em cada empresa.
+Quero que o assistente funcione com a chave que eu tiver: **OpenRouter**, **Anthropic** ou **OpenAI**.
+
+- O OpenRouter é o meu preferido: com uma única conta ele dá acesso a modelos de vários fornecedores, inclusive **gratuitos** (os que terminam em `:free`, como `google/gemma-4-31b-it:free`).
+- Se eu tiver mais de uma chave, quero escolher a ordem de preferência. Se o primeiro falhar (modelo gratuito lotado, sem crédito, fora do ar), o assistente deve tentar o próximo sozinho.
+- Se nenhum funcionar, quero ver no chat o motivo de cada falha.
 
 ## Como eu quero personalizar
 
@@ -20,7 +24,7 @@ Não quero mexer em código para mudar o assistente. Quero **um único arquivo d
 - o nome do assistente e uma frase de descrição;
 - as cores da página (uma ou duas cores);
 - a logo e o tamanho dela;
-- qual modelo do OpenRouter ele usa e o tamanho máximo das respostas. Quero usar um **modelo gratuito** (os que terminam em `:free`, como `google/gemma-4-31b-it:free`), para não gastar nada;
+- quais provedores e modelos ele usa, em ordem de preferência, e o tamanho máximo das respostas;
 - as instruções de comportamento: quem ele é, com quem fala, o que ele não deve fazer;
 - algumas perguntas de exemplo que aparecem como botões para o usuário clicar.
 
@@ -35,7 +39,7 @@ Quero editar esse arquivo pelo próprio site do GitHub, sem instalar nada.
 
 ## Segurança
 
-- A chave do OpenRouter **não pode aparecer no código** nem no GitHub. Ela deve ficar guardada nas configurações do Hugging Face.
+- As chaves de API **não podem aparecer no código** nem no GitHub. Elas devem ficar guardadas nas configurações do Hugging Face.
 - Se alguém colocar uma chave no código por engano, a publicação deve ser bloqueada.
 
 ## Aparência
@@ -66,12 +70,12 @@ Copie o texto abaixo e cole no Claude Code ou no Codex, na mesma pasta deste arq
 Leia o arquivo IDEIA-parte1.md. Ele descreve, em linguagem simples, o projeto que eu quero construir.
 
 Antes de escrever qualquer coisa, me faça as perguntas que faltarem para você decidir
-(por exemplo: qual modelo do OpenRouter usar, meu usuário no Hugging Face, o nome do Space,
+(por exemplo: quais provedores de IA e modelos usar, meu usuário no Hugging Face, o nome do Space,
 se o Space usa CPU ou ZeroGPU). Faça no máximo 5 perguntas, uma lista só.
 
 Depois, gere o arquivo SPEC-parte1-cicd-deploy.md no formato spec-driven, com:
 1. Objetivo, público e escopo (o que entra e o que fica para as partes 2 e 3)
-2. Stack escolhida (a IA é acessada pelo OpenRouter) e restrições conhecidas do Hugging Face Spaces
+2. Stack escolhida (IA via OpenRouter, Anthropic ou OpenAI, com troca automática) e restrições conhecidas do Hugging Face Spaces
 3. Estrutura de arquivos do projeto
 4. Contrato do arquivo de configuração: cada campo, se é obrigatório, valores aceitos e padrão
 5. Requisitos funcionais numerados (RF1, RF2...)

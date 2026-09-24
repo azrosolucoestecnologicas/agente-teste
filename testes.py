@@ -19,7 +19,7 @@ except Exception as e:
     sys.exit(1)
 
 # 2. Os campos obrigatórios estão preenchidos?
-for campo in ["nome", "descricao", "tema", "modelo", "prompt_sistema"]:
+for campo in ["nome", "descricao", "tema", "prompt_sistema"]:
     if not str(config.get(campo, "")).strip():
         erros.append(f"campo obrigatório vazio no config.yml: {campo}")
 
@@ -29,6 +29,18 @@ cores = [c.strip() for c in str(config.get("tema", "")).split(" e ")]
 if len(cores) > 2 or any(c not in temas for c in cores):
     erros.append(f"tema '{config.get('tema')}' não existe. Use uma ou duas destas cores "
                  f"(ex.: 'azul' ou 'azul e vermelho'): {', '.join(sorted(temas))}")
+
+# 3b. Os provedores de IA estão no formato certo? (provedor: modelo)
+provedores_validos = {"openrouter", "anthropic", "openai"}
+provedores = config.get("provedores")
+if not isinstance(provedores, dict) or not provedores:
+    erros.append("provedores: liste pelo menos um, no formato 'openrouter: nome-do-modelo'")
+else:
+    for nome, modelo in provedores.items():
+        if nome not in provedores_validos:
+            erros.append(f"provedor '{nome}' não existe. Use: {', '.join(sorted(provedores_validos))}")
+        elif not str(modelo or "").strip():
+            erros.append(f"provedor '{nome}' está sem modelo")
 
 # 4. O prompt de sistema tem conteúdo de verdade?
 if len(str(config.get("prompt_sistema", ""))) < 80:
@@ -49,7 +61,7 @@ except SyntaxError as e:
     erros.append(f"erro de sintaxe no app.py, linha {e.lineno}: {e.msg}")
 
 # 7. Nenhuma chave de API foi colocada por engano nos arquivos
-padrao = re.compile(r"sk-or-[A-Za-z0-9_\-]{10,}|sk-ant-[A-Za-z0-9_\-]{10,}|hf_[A-Za-z0-9]{20,}")
+padrao = re.compile(r"sk-or-[A-Za-z0-9_\-]{10,}|sk-ant-[A-Za-z0-9_\-]{10,}|sk-proj-[A-Za-z0-9_\-]{10,}|hf_[A-Za-z0-9]{20,}")
 for arquivo in Path(".").rglob("*"):
     if ".git" in arquivo.parts or not arquivo.is_file():
         continue
