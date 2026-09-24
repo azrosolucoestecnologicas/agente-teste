@@ -84,7 +84,11 @@ def responder(mensagem, historico):
             stream=True,
             # Alguns modelos "pensam" antes de responder e gastam o max_tokens nisso.
             # Desligamos o raciocínio para a resposta vir direto; quem não tem, ignora.
-            extra_body={"reasoning": {"enabled": False}},
+            # "models" é a lista de reserva do OpenRouter: se um estiver lotado, tenta o próximo.
+            extra_body={
+                "reasoning": {"enabled": False},
+                "models": [CONFIG["modelo"], *(CONFIG.get("modelos_reserva") or [])],
+            },
         )
         for pedaco in fluxo:
             if pedaco.choices and pedaco.choices[0].delta.content:

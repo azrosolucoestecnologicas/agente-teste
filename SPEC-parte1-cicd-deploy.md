@@ -68,6 +68,7 @@ README.md                   # cabeçalho YAML exigido pelo Hugging Face
 | `logo` | não | caminho `.svg` no repositório ou link `https` | sem logo |
 | `logo_altura` | não | inteiro em pixels | 56 |
 | `modelo` | sim | ID de modelo do OpenRouter, no formato `fornecedor/modelo` (ex.: `google/gemma-4-31b-it:free`; gratuitos terminam em `:free`) | — |
+| `modelos_reserva` | não | lista de IDs do OpenRouter tentados em ordem se o `modelo` estiver lotado (ex.: `openrouter/free` como última opção) | nenhum |
 | `max_tokens` | não | inteiro | 800 |
 | `prompt_sistema` | sim | texto com pelo menos 80 caracteres: quem é, para quem fala, o que não faz | — |
 | `exemplos` | não | lista de perguntas curtas | nenhum |

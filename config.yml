@@ -26,6 +26,12 @@ logo_altura: 56
 # filtro "Prompt pricing" em FREE. Gratuitos têm limite de uso e a lista muda com o tempo.
 modelo: google/gemma-4-31b-it:free
 
+# Modelos reserva: se o principal estiver lotado ou fora do ar, o OpenRouter tenta estes, na ordem.
+# "openrouter/free" escolhe qualquer modelo gratuito disponível, bom como última opção.
+modelos_reserva:
+  - qwen/qwen3.8-27b:free
+  - openrouter/free
+
 # Limite de tamanho de cada resposta (em tokens, aproximadamente 3/4 de palavra)
 max_tokens: 800
 
