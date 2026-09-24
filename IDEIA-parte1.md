@@ -1,4 +1,4 @@
-# Ideia do projeto — Parte 1: meu primeiro assistente de IA no ar
+# Ideia do projeto — Parte 1: meu primeiro assistente de IA no ar.
 
 > Este texto conta, em linguagem simples, o que eu quero construir.
 > Não é preciso saber programar para escrevê-lo. No final há um prompt para pedir ao Claude Code (ou ao Codex) que transforme esta ideia numa spec técnica.
