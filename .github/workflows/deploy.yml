@@ -4,14 +4,14 @@ name: Testar e publicar no Hugging Face
 # EDITE AQUI: seu usuário e o nome do Space que você criou
 # ------------------------------------------------------------
 env:
-  HF_USUARIO: seu-usuario
-  HF_SPACE: meu-assistente
+  HF_USUARIO: thiagoazro
+  HF_SPACE: meu-assisntente
 
 # Gatilhos: o que faz este processo começar
 on:
   push:
-    branches: [main]      # todo commit na branch principal
-  workflow_dispatch:      # o botão "Run workflow" na aba Actions
+    branches: [main] # todo commit na branch principal
+  workflow_dispatch: # o botão "Run workflow" na aba Actions
 
 jobs:
   # Job 1: o portão. Se falhar, o job 2 nem começa.
@@ -40,7 +40,7 @@ jobs:
       - name: Baixar o repositório com o histórico completo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # o Hugging Face recusa o envio sem o histórico
+          fetch-depth: 0 # o Hugging Face recusa o envio sem o histórico
 
       - name: Enviar para o Space
         env:
