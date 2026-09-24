@@ -7,7 +7,7 @@ from pathlib import Path
 
 import gradio as gr
 import yaml
-from openai import OpenAI
+from openai import APIError, OpenAI
 
 # O Space roda em hardware ZeroGPU, que exige pelo menos uma função com @spaces.GPU.
 # O pacote "spaces" já vem instalado no Hugging Face; no computador local ele não existe,
@@ -76,19 +76,23 @@ def responder(mensagem, historico):
     mensagens.append({"role": "user", "content": mensagem})
 
     texto = ""
-    fluxo = cliente.chat.completions.create(
-        model=CONFIG["modelo"],
-        max_tokens=int(CONFIG.get("max_tokens", 800)),
-        messages=mensagens,
-        stream=True,
-        # Alguns modelos "pensam" antes de responder e gastam o max_tokens nisso.
-        # Desligamos o raciocínio para a resposta vir direto; quem não tem, ignora.
-        extra_body={"reasoning": {"enabled": False}},
-    )
-    for pedaco in fluxo:
-        if pedaco.choices and pedaco.choices[0].delta.content:
-            texto += pedaco.choices[0].delta.content
-            yield texto
+    try:
+        fluxo = cliente.chat.completions.create(
+            model=CONFIG["modelo"],
+            max_tokens=int(CONFIG.get("max_tokens", 800)),
+            messages=mensagens,
+            stream=True,
+            # Alguns modelos "pensam" antes de responder e gastam o max_tokens nisso.
+            # Desligamos o raciocínio para a resposta vir direto; quem não tem, ignora.
+            extra_body={"reasoning": {"enabled": False}},
+        )
+        for pedaco in fluxo:
+            if pedaco.choices and pedaco.choices[0].delta.content:
+                texto += pedaco.choices[0].delta.content
+                yield texto
+    except APIError as e:
+        # Mostra o motivo no chat (limite do modelo gratuito, modelo fora do ar, chave inválida...)
+        yield f"{texto}\n\n⚠️ O OpenRouter recusou o pedido: {e.message}"
 
 
 # "azul" usa uma cor; "azul e vermelho" usa a primeira como principal e a segunda como secundária
