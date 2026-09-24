@@ -1,0 +1,50 @@
+name: Testar e publicar no Hugging Face
+
+# ------------------------------------------------------------
+# EDITE AQUI: seu usuário e o nome do Space que você criou
+# ------------------------------------------------------------
+env:
+  HF_USUARIO: seu-usuario
+  HF_SPACE: meu-assistente
+
+# Gatilhos: o que faz este processo começar
+on:
+  push:
+    branches: [main]      # todo commit na branch principal
+  workflow_dispatch:      # o botão "Run workflow" na aba Actions
+
+jobs:
+  # Job 1: o portão. Se falhar, o job 2 nem começa.
+  testar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o repositório
+        uses: actions/checkout@v4
+
+      - name: Instalar o Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependências do teste
+        run: pip install pyyaml
+
+      - name: Rodar o portão
+        run: python testes.py
+
+  # Job 2: publicação. Só roda se o job "testar" passou.
+  publicar:
+    needs: testar
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o repositório com o histórico completo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # o Hugging Face recusa o envio sem o histórico
+
+      - name: Enviar para o Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          REPO="huggingface.co/spaces/${HF_USUARIO}/${HF_SPACE}"
+          git push --force "https://${HF_USUARIO}:${HF_TOKEN}@${REPO}" HEAD:main

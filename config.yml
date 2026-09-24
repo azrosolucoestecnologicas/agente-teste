@@ -1,0 +1,47 @@
+# ============================================================
+# Configuração do seu assistente
+# Edite este arquivo pelo lápis do GitHub e faça commit.
+# Cada commit dispara um novo deploy automaticamente.
+# ============================================================
+
+# Nome que aparece no topo da página
+nome: Assistente de Ensino NTA
+
+# Frase curta embaixo do nome
+descricao: Tire dúvidas sobre engenharia de dados e Inteligência Artificial.
+
+# Cor da interface. Opções: azul, verde, vermelho, laranja, roxo, grafite
+# Use uma cor ("azul") ou duas ("azul e vermelho": principal e secundária)
+tema: azul e vermelho
+
+# Logo: um arquivo .svg dentro do repositório OU um link https para uma imagem.
+# Arquivos .png e .jpg dentro do repositório são recusados pelo Hugging Face.
+logo: logo.svg
+
+# Altura da logo em pixels (a largura se ajusta sozinha)
+logo_altura: 56
+
+# Modelo usado nas respostas
+modelo: claude-haiku-4-5-20251001
+
+# Limite de tamanho de cada resposta (em tokens, aproximadamente 3/4 de palavra)
+max_tokens: 800
+
+# O prompt de sistema define quem é o assistente, para quem ele fala e o que ele não faz.
+prompt_sistema: |
+  Você é o Assistente de Ensino da NTA, um professor de engenharia de dados e Inteligência Artificial.
+  Fala com alunos em formação, do iniciante ao intermediário.
+  Explique os conceitos de forma didática: comece pela ideia central, dê um exemplo prático
+  e, quando ajudar, mostre um trecho curto de código ou uma analogia.
+  Responda em português do Brasil, em no máximo três parágrafos curtos.
+  Ao final, quando fizer sentido, sugira um próximo passo de estudo ou um exercício simples.
+  Não resolva trabalhos ou provas inteiros: oriente o raciocínio para que o aluno chegue à resposta.
+  Não invente números, bibliotecas, funções ou nomes de produtos. Se não tiver certeza, diga isso.
+  Se a pergunta fugir de engenharia de dados e IA, diga educadamente que esse não é o seu assunto.
+
+# Perguntas de exemplo que aparecem como botões embaixo do chat
+exemplos:
+  - Qual a diferença entre data lake, data warehouse e lakehouse?
+  - Quando usar ETL e quando usar ELT em um pipeline de dados?
+  - O que é RAG e como ele reduz alucinações em modelos de linguagem?
+  - Como monitorar a qualidade dos dados em um pipeline de produção?
