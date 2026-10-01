@@ -10,6 +10,8 @@ import gradio as gr
 import openai
 import yaml
 
+import rag
+
 # O Space roda em hardware ZeroGPU, que exige pelo menos uma função com @spaces.GPU.
 # O pacote "spaces" já vem instalado no Hugging Face; no computador local ele não existe,
 # então usamos um decorador vazio para o app rodar igual nos dois lugares.
@@ -42,6 +44,29 @@ CHAVES = {
     "openai": "OPENAI_API_KEY",
 }
 MAX_TOKENS = int(CONFIG.get("max_tokens", 800))
+
+
+# Base de conhecimento (Parte 2): o modelo de embedding é carregado uma vez, ao iniciar (R9).
+# O Space usa a chave publicável, que só consegue LER a coleção 'producao' do Supabase (R8).
+BASE = rag.carregar_config()
+modelo_embedding, banco, erro_base = None, None, None
+if BASE["ativa"]:
+    try:
+        banco = rag.cliente_supabase("SUPABASE_PUBLISHABLE_KEY")
+        modelo_embedding = rag.carregar_modelo(BASE)
+        total = (banco.table("trechos").select("id", count="exact", head=True)
+                 .eq("colecao", "producao").execute().count)
+        print(f"Base de conhecimento: modelo {BASE['modelo_embedding']} carregado; {total} trechos na produção")
+    except RuntimeError as e:
+        erro_base = (f"A base de conhecimento não está configurada ({e}). No Space, abra Settings, "
+                     "Variables and secrets, e cadastre SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY.")
+    except Exception as e:
+        # Sem banco ou sem modelo, o chat avisa. Se só a contagem falhou, a busca tenta de novo a cada pergunta.
+        if banco is None:
+            erro_base = f"Não consegui conectar ao Supabase: {e}. Confira SUPABASE_URL nos secrets do Space."
+        elif modelo_embedding is None:
+            erro_base = f"Não consegui carregar o modelo de embedding: {e}"
+        print(f"Base de conhecimento: aviso ao iniciar: {e}")
 
 
 def logo_html() -> str:
@@ -124,6 +149,19 @@ def responder(mensagem, historico):
                + ", ".join(CHAVES[n] for n in CONFIG.get("provedores") or CHAVES) + ".")
         return
 
+    # RAG: busca os trechos da última pergunta na coleção 'producao' antes de chamar o modelo (RF11)
+    trechos = []
+    if BASE["ativa"]:
+        if erro_base:
+            yield erro_base
+            return
+        try:
+            trechos = rag.buscar(banco, modelo_embedding, mensagem, BASE)
+        except Exception as e:
+            yield ("A base de conhecimento está indisponível: o banco do Supabase não respondeu "
+                   f"({e}). Confira os secrets do Space e se o projeto do Supabase não está pausado.")
+            return
+
     # O modelo não lembra de nada sozinho: reenviamos a conversa inteira a cada pergunta.
     # No Gradio 6 o "content" chega como lista de partes ({"type": "text", "text": ...}).
     mensagens = []
@@ -133,7 +171,9 @@ def responder(mensagem, historico):
             conteudo = "".join(p.get("text", "") for p in conteudo if isinstance(p, dict))
         if isinstance(conteudo, str) and conteudo:
             mensagens.append({"role": m["role"], "content": conteudo})
-    mensagens.append({"role": "user", "content": mensagem})
+    # Só a pergunta atual leva os trechos; as anteriores vão como foram digitadas
+    conteudo_atual = rag.montar_mensagem(mensagem, trechos, BASE) if BASE["ativa"] else mensagem
+    mensagens.append({"role": "user", "content": conteudo_atual})
 
     # Tenta cada provedor na ordem. Se um falhar antes de responder, passa para o próximo.
     falhas = []
@@ -143,6 +183,9 @@ def responder(mensagem, historico):
             for pedaco in PROVEDORES[nome](modelo, mensagens):
                 texto += pedaco
                 yield texto
+            # Fontes escritas pelo app, não pelo modelo; omitidas quando ele não encontrou a resposta (RF12)
+            if trechos and BASE["mensagem_nao_encontrado"] not in texto:
+                yield f"{texto}\n\n{rag.listar_fontes(trechos)}"
             return
         except (openai.APIError, anthropic.APIError) as e:
             if texto:  # caiu no meio da resposta: mostra o que veio e avisa
