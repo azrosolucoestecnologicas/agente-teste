@@ -34,12 +34,12 @@ Publicar na internet um chat com IA personalizado, que qualquer pessoa sem conhe
 |---|---|---|
 | Linguagem | Python 3.11 | Simples para alunos |
 | Interface | Gradio 6 (`gr.ChatInterface`) | Chat pronto, roda nativo no Hugging Face |
-| Modelo | OpenRouter (SDK `openai` com `base_url=https://openrouter.ai/api/v1`) | Uma chave dá acesso a modelos de vários fornecedores; sem GPU própria |
+| Modelo | OpenRouter, Anthropic e OpenAI, em ordem de preferência (SDKs `openai` e `anthropic`) | Funciona com a chave que o aluno tiver; com mais de uma, um provedor cobre a falha do outro |
 | Hospedagem | Hugging Face Spaces | Grátis, sem cartão |
 | CI/CD | GitHub Actions | Testa e publica a cada commit |
 
 **Restrições conhecidas (aprendidas na prática):**
-- R1. A chave da API **nunca** entra no repositório. Ela vem da variável de ambiente `OPENROUTER_API_KEY`, cadastrada nos secrets do Space.
+- R1. A chave da API **nunca** entra no repositório. Elas vêm das variáveis de ambiente `OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY` e `OPENAI_API_KEY`, cadastradas nos secrets do Space. Basta uma.
 - R2. O Hugging Face recusa `.png`/`.jpg` versionados no repositório do Space. A logo precisa ser `.svg` ou um link `https`.
 - R3. A versão do Gradio em `README.md` (`sdk_version`) precisa ser **a mesma** usada localmente. O Gradio 5 e o 6 têm APIs diferentes (`theme`/`css` ficam em `launch()` no 6).
 - R4. Sem plano PRO, um Space em ZeroGPU não volta para CPU basic. Nesse hardware, o app precisa ter ao menos uma função com `@spaces.GPU`. O pacote `spaces` não existe localmente, então é preciso um decorador vazio como alternativa.
@@ -51,7 +51,7 @@ Publicar na internet um chat com IA personalizado, que qualquer pessoa sem conhe
 config.yml                  # única coisa que o aluno edita
 app.py                      # lê o config e monta o chat; quase nunca muda
 testes.py                   # portão do deploy
-requirements.txt            # openai, pyyaml
+requirements.txt            # anthropic, openai, pyyaml
 logo.svg                    # logo padrão
 README.md                   # cabeçalho YAML exigido pelo Hugging Face
 .gitignore                  # __pycache__/, *.pyc, .env
@@ -67,8 +67,8 @@ README.md                   # cabeçalho YAML exigido pelo Hugging Face
 | `tema` | sim | uma cor (`azul`) ou duas (`azul e vermelho`) entre: `azul`, `verde`, `vermelho`, `laranja`, `roxo`, `grafite` | — |
 | `logo` | não | caminho `.svg` no repositório ou link `https` | sem logo |
 | `logo_altura` | não | inteiro em pixels | 56 |
-| `modelo` | sim | ID de modelo do OpenRouter, no formato `fornecedor/modelo` (ex.: `google/gemma-4-31b-it:free`; gratuitos terminam em `:free`) | — |
-| `modelos_reserva` | não | lista de IDs do OpenRouter tentados em ordem se o `modelo` estiver lotado (só modelos de conversa; evite `openrouter/free`, que pode cair num modelo de moderação) | nenhum |
+| `provedores` | sim | mapa `provedor: modelo`, em ordem de preferência. Provedores: `openrouter` (ex.: `google/gemma-4-31b-it:free`), `anthropic` (ex.: `claude-haiku-4-5`), `openai` (ex.: `gpt-5.4-mini`) | — |
+| `modelos_reserva` | não | só OpenRouter: lista de IDs tentados em ordem se o modelo dele estiver lotado (só modelos de conversa; evite `openrouter/free`, que pode cair num modelo de moderação) | nenhum |
 | `max_tokens` | não | inteiro | 800 |
 | `prompt_sistema` | sim | texto com pelo menos 80 caracteres: quem é, para quem fala, o que não faz | — |
 | `exemplos` | não | lista de perguntas curtas | nenhum |
@@ -81,7 +81,8 @@ Todo campo novo deve entrar nesta tabela **antes** de ir para o código, com um 
 - **RF2 — Chat:** envia a conversa inteira a cada pergunta (o modelo não guarda memória) e mostra a resposta em streaming.
 - **RF3 — Exemplos:** as perguntas de `exemplos` aparecem como cartões clicáveis.
 - **RF4 — Tema:** a primeira cor é a principal e a segunda, se existir, é a secundária. O fundo da página é um degradê entre elas, e o chat fica num cartão legível por cima.
-- **RF5 — Sem chave:** se `OPENROUTER_API_KEY` não existir, o chat responde com uma mensagem explicando onde cadastrá-la, em vez de quebrar.
+- **RF5 — Sem chave:** se nenhum provedor do config tiver chave cadastrada, o chat responde com uma mensagem listando as chaves possíveis e onde cadastrá-las, em vez de quebrar.
+- **RF7 — Troca de provedor:** o app usa só os provedores com chave, na ordem do config. Se um falhar antes de responder (limite, fora do ar, sem crédito), tenta o próximo. Se todos falharem, mostra o motivo de cada um no chat.
 - **RF6 — Idioma:** os textos da interface (placeholder, rótulos) ficam em português.
 
 ## 8. Portão de testes (`testes.py`)
@@ -92,9 +93,10 @@ O deploy **não acontece** se qualquer item falhar. Cada erro deve dizer o que c
 - **T2:** os campos obrigatórios estão preenchidos.
 - **T3:** o `tema` usa uma ou duas cores permitidas, no formato `cor` ou `cor e cor`.
 - **T4:** o `prompt_sistema` tem pelo menos 80 caracteres.
+- **T4b:** `provedores` tem pelo menos um item, só usa `openrouter`, `anthropic` ou `openai`, e cada um tem modelo.
 - **T5:** a logo local existe e é `.svg`. Links `https` são aceitos sem checagem.
 - **T6:** o `app.py` tem sintaxe Python válida.
-- **T7:** nenhum arquivo contém algo com cara de chave (`sk-or-...`, `sk-ant-...`, `hf_...`).
+- **T7:** nenhum arquivo contém algo com cara de chave (`sk-or-...`, `sk-ant-...`, `sk-proj-...`, `hf_...`).
 
 ## 9. Pipeline de deploy
 
@@ -104,7 +106,7 @@ O deploy **não acontece** se qualquer item falhar. Cada erro deve dizer o que c
 4. **Configuração obrigatória antes do primeiro deploy:**
    - Em `deploy.yml`: `HF_USUARIO` e `HF_SPACE` com os valores reais (o nome exato do Space).
    - No GitHub: secret `HF_TOKEN`, um token do Hugging Face com permissão de escrita.
-   - No Space: secret `OPENROUTER_API_KEY`.
+   - No Space: pelo menos um dos secrets `OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY` ou `OPENAI_API_KEY`.
 
 ## 10. Critérios de aceite
 
@@ -112,7 +114,8 @@ O deploy **não acontece** se qualquer item falhar. Cada erro deve dizer o que c
 - [ ] **CA2:** trocar `tema` para `rosa` faz o portão barrar, com mensagem clara.
 - [ ] **CA3:** `python app.py` abre em `localhost:7860`, e `PORT=7861 python app.py` abre em outra porta.
 - [ ] **CA4:** uma logo SVG de 588×380 aparece com a altura de `logo_altura`.
-- [ ] **CA5:** sem `OPENROUTER_API_KEY`, o chat mostra a mensagem de RF5.
+- [ ] **CA5:** sem nenhuma chave, o chat mostra a mensagem de RF5.
+- [ ] **CA5b:** com o primeiro provedor sem crédito ou lotado e outro com chave válida, a resposta vem do segundo (RF7).
 - [ ] **CA6:** com a chave, uma pergunta de exemplo recebe resposta em streaming e dentro do assunto do prompt.
 - [ ] **CA7:** um commit na `main` alterando só o `config.yml` termina com o Space em `RUNNING` e a mudança visível.
 - [ ] **CA8:** um commit com config inválido falha no job `testar`, e a versão anterior continua no ar.

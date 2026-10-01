@@ -43,7 +43,7 @@ Fazer o assistente responder **com base no material de consulta do curso** (as a
 | Busca por sentido | Distância do cosseno do pgvector (`<=>`), busca exata | Com poucos milhares de trechos, a busca exata é rápida e sempre certa |
 | Fusão | RRF dentro da função SQL `buscar_hibrido`: soma de `peso / (60 + posição)` | Junta rankings de escalas diferentes sem calibração |
 | Acesso ao banco | Biblioteca `supabase` (Python) | Chamadas simples: `table(...).insert`, `rpc(...)` |
-| Modelo de linguagem | OpenRouter, como na parte 1 | Nada muda |
+| Modelo de linguagem | Os provedores da parte 1 (OpenRouter, Anthropic ou OpenAI, com troca automática) | Nada muda: os trechos entram na mensagem, qualquer que seja o provedor |
 
 **Restrições conhecidas:**
 - R6. **O mesmo modelo de embedding** gera os vetores dos trechos (no Actions) e o vetor da pergunta (no Space). O tamanho do vetor (384) está fixo no SQL: trocar para um modelo de outra dimensão exige mudar `vector(384)` no esquema e reindexar.
