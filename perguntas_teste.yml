@@ -1,0 +1,56 @@
+# ============================================================
+# Perguntas de teste da busca (o portão T14).
+# A cada commit, o GitHub Actions faz estas perguntas ao índice novo e confere se o
+# trecho esperado aparece entre os top_k primeiros. Abaixo do limiar, nada é publicado.
+# ============================================================
+
+# Fração mínima de perguntas que precisam encontrar o trecho esperado (0 a 1)
+limiar_hit_rate: 0.85
+
+# Quantos trechos a busca devolve em cada pergunta de teste (1 a 10)
+top_k: 3
+
+# Cada pergunta diz em qual arquivo (e, se quiser, em qual seção) está a resposta.
+# secao_esperada é opcional: basta um pedaço do título da seção.
+perguntas:
+  - pergunta: Em qual lugar eu cadastro o token do Hugging Face que o GitHub usa para publicar?
+    fonte_esperada: parte1-cicd-deploy.md
+    secao_esperada: Segredos
+
+  - pergunta: O que acontece com a máquina do GitHub Actions quando o workflow termina?
+    fonte_esperada: parte1-cicd-deploy.md
+    secao_esperada: máquina descartável
+
+  - pergunta: Por que a conversa some quando eu fecho a aba do navegador?
+    fonte_esperada: parte1-cicd-deploy.md
+    secao_esperada: chat esquece
+
+  - pergunta: Qual a diferença entre site estático, PaaS e serverless?
+    fonte_esperada: parte1-cicd-deploy.md
+    secao_esperada: Tipos de deploy
+
+  - pergunta: Como a fusão por posição combina a lista de palavras com a lista de sentido?
+    fonte_esperada: parte2-rag.md
+    secao_esperada: RRF
+
+  - pergunta: Por que repetir o final de um trecho no começo do próximo?
+    fonte_esperada: parte2-rag.md
+    secao_esperada: Chunking
+
+  - pergunta: O que mede o ângulo entre dois vetores?
+    fonte_esperada: parte2-rag.md
+    secao_esperada: cosseno
+
+  - pergunta: Quando vale a pena usar um banco vetorial como Qdrant ou pgvector?
+    fonte_esperada: parte2-rag.md
+    secao_esperada: banco vetorial
+
+  # Para demonstrar o portão em aula: descomente as duas perguntas abaixo e faça commit.
+  # Nenhum documento tem essas respostas: o hit rate cai para 8/10 = 0,80, abaixo do
+  # limiar de 0,85, e o job avaliar fica vermelho. Comente de novo para o verde voltar.
+  # - pergunta: Qual é a receita oficial do bolo de cenoura do instituto?
+  #   fonte_esperada: parte2-rag.md
+  #   secao_esperada: Receitas
+  # - pergunta: Em que ano o instituto foi fundado?
+  #   fonte_esperada: parte1-cicd-deploy.md
+  #   secao_esperada: História do instituto

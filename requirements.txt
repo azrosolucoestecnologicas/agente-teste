@@ -1,2 +1,4 @@
 openai
 pyyaml
+fastembed
+supabase

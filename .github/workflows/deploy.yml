@@ -13,6 +13,11 @@ on:
     branches: [main] # todo commit na branch principal
   workflow_dispatch: # o botão "Run workflow" na aba Actions
 
+# Um deploy por vez: dois pushes seguidos não gravam a coleção 'teste' ao mesmo tempo
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
 jobs:
   # Job 1: o portão. Se falhar, o job 2 nem começa.
   testar:
@@ -32,15 +37,54 @@ jobs:
       - name: Rodar o portão
         run: python testes.py
 
-  # Job 2: publicação. Só roda se o job "testar" passou.
-  publicar:
+  # Job 2: o portão da busca (Parte 2). Monta o índice novo na coleção 'teste' do Supabase
+  # e faz as perguntas de teste. Se falhar, a coleção 'producao' (o que está no ar) nem é tocada.
+  avaliar:
     needs: testar
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+    steps:
+      - name: Baixar o repositório
+        uses: actions/checkout@v4
+
+      - name: Instalar o Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependências da indexação
+        run: pip install fastembed supabase pyyaml
+
+      - name: Montar o índice na coleção teste
+        run: python indexar.py
+
+      - name: Rodar as perguntas de teste
+        run: python avaliar.py
+
+  # Job 3: publicação. Só roda se o "avaliar" passou.
+  publicar:
+    needs: avaliar
     runs-on: ubuntu-latest
     steps:
       - name: Baixar o repositório com o histórico completo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # o Hugging Face recusa o envio sem o histórico
+
+      - name: Instalar o Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Promover o índice testado para a produção
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: |
+          pip install supabase pyyaml
+          python indexar.py --promover
 
       - name: Enviar para o Space
         env:

@@ -57,6 +57,90 @@ for arquivo in Path(".").rglob("*"):
         if padrao.search(arquivo.read_text(encoding="utf-8", errors="ignore")):
             erros.append(f"possível chave de API dentro de {arquivo}: remova e REVOGUE a chave")
 
+# ------------------------------------------------------------ Parte 2: base de conhecimento
+
+# T10. O bloco base_conhecimento respeita o contrato, e o prompt tem a frase de "não encontrei"
+padroes = {"ativa": True, "pasta": "documentos", "tamanho_trecho": 1200, "sobreposicao": 150,
+           "trechos_por_resposta": 4, "peso_palavras": 1, "peso_sentido": 1,
+           "mensagem_nao_encontrado": "Não encontrei isso no material do curso."}
+base = {**padroes, **(config.get("base_conhecimento") or {})}
+
+
+def inteiro_entre(campo, minimo, maximo):
+    valor = base[campo]
+    if not isinstance(valor, int) or isinstance(valor, bool) or not minimo <= valor <= maximo:
+        erros.append(f"base_conhecimento.{campo} precisa ser um número inteiro de {minimo} a {maximo} (está: {valor})")
+        return False
+    return True
+
+
+if not isinstance(base["ativa"], bool):
+    erros.append("base_conhecimento.ativa precisa ser true ou false")
+if inteiro_entre("tamanho_trecho", 300, 4000):
+    inteiro_entre("sobreposicao", 0, base["tamanho_trecho"] // 2)
+inteiro_entre("trechos_por_resposta", 1, 10)
+pesos = [base["peso_palavras"], base["peso_sentido"]]
+if any(not isinstance(p, (int, float)) or isinstance(p, bool) or p < 0 for p in pesos):
+    erros.append("base_conhecimento.peso_palavras e peso_sentido precisam ser números maiores ou iguais a zero")
+elif pesos == [0, 0]:
+    erros.append("base_conhecimento: peso_palavras e peso_sentido não podem ser zero ao mesmo tempo")
+mensagem = str(base["mensagem_nao_encontrado"]).strip()
+if base["ativa"] is True and mensagem not in str(config.get("prompt_sistema", "")):
+    erros.append(f"o prompt_sistema precisa conter a frase exata de mensagem_nao_encontrado: \"{mensagem}\"")
+
+if base["ativa"] is True:
+    # T11. A pasta de documentos existe, só tem .md, e cada um tem título e conteúdo
+    pasta = Path(str(base["pasta"]))
+    documentos = sorted(pasta.glob("*.md")) if pasta.is_dir() else []
+    if not pasta.is_dir():
+        erros.append(f"pasta de documentos '{pasta}' não encontrada")
+    elif not documentos:
+        erros.append(f"a pasta '{pasta}' não tem nenhum arquivo .md")
+    else:
+        for arquivo in pasta.iterdir():
+            if arquivo.name.startswith("."):
+                continue
+            if arquivo.suffix.lower() != ".md":
+                erros.append(f"'{arquivo}' não é .md: deixe só Markdown na pasta de documentos (PDF e Word ficam fora)")
+        for arquivo in documentos:
+            texto = arquivo.read_text(encoding="utf-8", errors="ignore")
+            if not re.search(r"^#{1,3} \S", texto, re.M):
+                erros.append(f"'{arquivo}' não tem nenhum título (linha começando com #)")
+            if len(texto.strip()) < 200:
+                erros.append(f"'{arquivo}' tem menos de 200 caracteres")
+
+    # T12. As perguntas de teste são válidas e apontam para documentos que existem
+    try:
+        teste = yaml.safe_load(Path("perguntas_teste.yml").read_text(encoding="utf-8")) or {}
+    except Exception as e:
+        erros.append(f"perguntas_teste.yml ausente ou inválido: {e}")
+        teste = None
+    if teste is not None:
+        limiar, top_k = teste.get("limiar_hit_rate"), teste.get("top_k")
+        if not isinstance(limiar, (int, float)) or isinstance(limiar, bool) or not 0 <= limiar <= 1:
+            erros.append("perguntas_teste.yml: limiar_hit_rate precisa ser um número de 0 a 1")
+        if not isinstance(top_k, int) or isinstance(top_k, bool) or not 1 <= top_k <= 10:
+            erros.append("perguntas_teste.yml: top_k precisa ser um número inteiro de 1 a 10")
+        perguntas = teste.get("perguntas") or []
+        if len(perguntas) < 5:
+            erros.append(f"perguntas_teste.yml precisa de pelo menos 5 perguntas (tem {len(perguntas)})")
+        nomes = {d.name for d in documentos}
+        for i, p in enumerate(perguntas, start=1):
+            if not isinstance(p, dict) or not str(p.get("pergunta", "")).strip() or not p.get("fonte_esperada"):
+                erros.append(f"perguntas_teste.yml, pergunta {i}: precisa de 'pergunta' e 'fonte_esperada'")
+            elif p["fonte_esperada"] not in nomes:
+                erros.append(f"perguntas_teste.yml, pergunta {i}: fonte_esperada '{p['fonte_esperada']}' "
+                             f"não existe em {pasta}/")
+
+# T13. Nenhuma chave secreta do Supabase nos arquivos (nem token JWT, formato das chaves antigas)
+padrao_supabase = re.compile(r"sb_secret_[A-Za-z0-9_\-]{20,}|eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}")
+for arquivo in Path(".").rglob("*"):
+    if ".git" in arquivo.parts or not arquivo.is_file():
+        continue
+    if arquivo.suffix in {".py", ".yml", ".yaml", ".md", ".txt", ".svg", ".json", ".sql"}:
+        if padrao_supabase.search(arquivo.read_text(encoding="utf-8", errors="ignore")):
+            erros.append(f"possível chave do Supabase dentro de {arquivo}: remova e REVOGUE a chave no painel")
+
 if erros:
     print("O portão barrou o deploy:\n")
     for e in erros:
