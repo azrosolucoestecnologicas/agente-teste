@@ -130,11 +130,24 @@ def cliente_supabase(nome_da_chave: str):
     """Conecta ao Supabase com a URL e a chave vindas das variáveis de ambiente (nunca do código)."""
     from supabase import create_client
 
-    url, chave = os.environ.get("SUPABASE_URL"), os.environ.get(nome_da_chave)
+    # strip(): um espaço ou quebra de linha colado junto com a chave já basta para o Supabase recusar
+    url = (os.environ.get("SUPABASE_URL") or "").strip().rstrip("/")
+    chave = (os.environ.get(nome_da_chave) or "").strip()
     faltando = [nome for nome, valor in (("SUPABASE_URL", url), (nome_da_chave, chave)) if not valor]
     if faltando:
         raise RuntimeError(f"variável de ambiente ausente: {', '.join(faltando)}")
     return create_client(url, chave)
+
+
+def diagnostico_supabase(nome_da_chave: str) -> str:
+    """Descreve a URL e a chave em uso sem revelar a chave: ajuda a achar o erro 'Invalid API key'."""
+    url = (os.environ.get("SUPABASE_URL") or "").strip().rstrip("/")
+    chave = (os.environ.get(nome_da_chave) or "").strip()
+    projeto = re.match(r"^https://([a-z0-9]+)\.supabase\.co$", url)
+    tipo = next((t for t in ("sb_secret_", "sb_publishable_", "eyJ") if chave.startswith(t)), "formato desconhecido")
+    return (f"URL aponta para o projeto '{projeto.group(1) if projeto else url}'; "
+            f"{nome_da_chave} começa com '{tipo}' e tem {len(chave)} caracteres. "
+            "Confira se a chave foi copiada inteira (pelo botão de copiar) e é do MESMO projeto da URL.")
 
 
 def buscar(cliente, modelo, pergunta: str, cfg: dict, colecao="producao", quantidade=None) -> list[dict]:
