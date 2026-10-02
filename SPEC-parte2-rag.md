@@ -208,11 +208,17 @@ T1…T13       indexa em 'teste'       promove 'teste' → 'producao'
 **Parte 3 — Front-end com IA e deploy em produção** (`SPEC-parte3-frontend.md`)
 - Uma interface própria, gerada com IA e publicada no GitHub Pages, conversando com este mesmo backend.
 - A busca, o índice e todas as chaves continuam no backend: o navegador só envia a pergunta e recebe a resposta com as fontes.
+- **Documentos em PDF na base de conhecimento.** Hoje a pasta `documentos/` só aceita `.md` (T11) por dois motivos diferentes:
+  1. **Restrição do Hugging Face (R2/R7):** o deploy envia o repositório inteiro ao Space, que recusa binários. Esse motivo some quando o backend sai do Hugging Face (ex.: Render, que puxa do GitHub e aceita PDF), ou antes disso, se o envio ao Space deixar de incluir a pasta `documentos/` — com o índice no Supabase, quem lê os documentos é o job `avaliar`, não o Space.
+  2. **Qualidade da extração:** PDF guarda aparência, não estrutura (colunas misturadas, cabeçalhos e rodapés repetidos, tabelas quebradas, nenhum título marcado). Esse motivo **não** some com a troca de hospedagem.
+- Proposta para a spec da parte 3: o T11 passa a aceitar `.md` e `.pdf`, e o `indexar.py` converte cada PDF para Markdown antes de dividir em trechos (com `pymupdf4llm` ou `MarkItDown`), removendo cabeçalhos, rodapés e números de página. A divisão por títulos (RF7) e a citação de fontes (RF12) continuam iguais, sobre o Markdown gerado.
+- Pontos a decidir na spec da parte 3: PDF escaneado (imagem) exige OCR, que fica fora ou entra como etapa opcional; tabelas complexas podem sair quebradas; e cada PDF novo deve ganhar perguntas em `perguntas_teste.yml`, para o T14 barrar uma conversão ruim antes de ela ir para o ar.
 
 **Decisões da parte 2 que preparam a parte 3:**
 - D4. A busca fica isolada em `rag.buscar`, e as fontes são montadas pelo app a partir de dados estruturados (fonte e seção). A API da parte 3 pode devolver resposta e fontes separadas sem reescrever a busca.
 - D5. O índice vive no Supabase, fora do Space. Outro backend pode consultar a mesma base sem reindexar.
 - D6. O portão da busca (T14) continua valendo para qualquer destino de deploy.
+- D7. A leitura dos documentos fica concentrada em `rag.dividir_em_trechos`. Aceitar PDF na parte 3 é acrescentar uma etapa de conversão antes da divisão, sem mudar a busca, o banco nem o app.
 
 ---
 
