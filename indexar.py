@@ -44,3 +44,7 @@ if __name__ == "__main__":
         promover() if "--promover" in sys.argv else indexar()
     except RuntimeError as e:
         sys.exit(f"ERRO: {e}. No GitHub, cadastre em Settings > Secrets and variables > Actions.")
+    except Exception as e:
+        if "Invalid API key" in str(e) or "401" in str(e):
+            sys.exit(f"ERRO: o Supabase recusou a chave (Invalid API key). {rag.diagnostico_supabase('SUPABASE_SECRET_KEY')}")
+        raise

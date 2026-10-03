@@ -158,8 +158,12 @@ def responder(mensagem, historico):
         try:
             trechos = rag.buscar(banco, modelo_embedding, mensagem, BASE)
         except Exception as e:
-            yield ("A base de conhecimento está indisponível: o banco do Supabase não respondeu "
-                   f"({e}). Confira os secrets do Space e se o projeto do Supabase não está pausado.")
+            if "Invalid API key" in str(e):
+                yield ("A base de conhecimento está indisponível: o Supabase recusou a chave do Space "
+                       f"(Invalid API key). {rag.diagnostico_supabase('SUPABASE_PUBLISHABLE_KEY')}")
+            else:
+                yield ("A base de conhecimento está indisponível: o banco do Supabase não respondeu "
+                       f"({e}). Confira os secrets do Space e se o projeto do Supabase não está pausado.")
             return
 
     # O modelo não lembra de nada sozinho: reenviamos a conversa inteira a cada pergunta.

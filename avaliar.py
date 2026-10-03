@@ -67,4 +67,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        if "Invalid API key" in str(e) or "401" in str(e):
+            sys.exit(f"ERRO: o Supabase recusou a chave (Invalid API key). {rag.diagnostico_supabase('SUPABASE_SECRET_KEY')}")
+        raise
