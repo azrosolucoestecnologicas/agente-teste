@@ -1,9 +1,10 @@
 """
-Base de conhecimento (RAG): funções usadas por indexar.py, avaliar.py e app.py.
+Base de conhecimento (RAG): funções usadas por indexar.py, avaliar.py e chat.py.
 Tudo que é ajustável fica no bloco base_conhecimento do config.yml.
 """
 import os
 import re
+from collections import Counter
 from pathlib import Path
 
 import yaml
@@ -96,12 +97,70 @@ def subdividir(texto: str, tamanho: int, sobreposicao: int) -> list[str]:
     return pedacos
 
 
+# ------------------------------------------------------------ leitura de PDF (RF30 e RF31)
+
+EXTENSOES = {".md", ".pdf"}
+MINIMO_PDF = 200  # menos que isso depois da conversão: PDF escaneado ou sem texto
+
+
+def _normalizar(linha: str) -> str:
+    """Versão da linha usada para achar cabeçalhos e rodapés: sem negrito, sem números, sem espaços extras."""
+    return re.sub(r"\s+", " ", re.sub(r"\d+", "#", linha.replace("**", "").replace("_", ""))).strip().lower()
+
+
+def pdf_para_markdown(arquivo: Path) -> str:
+    """Converte um PDF em Markdown com o pymupdf4llm, página por página, e limpa o que se repete.
+    Só a indexação usa (GitHub Actions); o servidor no ar não precisa desta biblioteca."""
+    import pymupdf4llm  # importado aqui: só quem indexa PDF precisa instalar
+
+    paginas = [p["text"] for p in pymupdf4llm.to_markdown(str(arquivo), page_chunks=True, show_progress=False)]
+
+    # Linhas curtas que aparecem em mais da metade das páginas são cabeçalho ou rodapé
+    repetidas = set()
+    if len(paginas) >= 3:
+        contagem = Counter()
+        for pagina in paginas:
+            contagem.update({_normalizar(l) for l in pagina.splitlines()
+                             if l.strip() and len(l) < 120 and not l.lstrip().startswith(("|", "```"))})
+        repetidas = {linha for linha, vezes in contagem.items() if vezes > len(paginas) / 2}
+
+    linhas = []
+    for pagina in paginas:
+        for linha in pagina.splitlines():
+            if _normalizar(linha) in repetidas:
+                continue
+            if re.fullmatch(r"\s*(\**)\s*(página\s*)?\d{1,4}(\s*(de|/)\s*\d{1,4})?\s*\1\s*", linha, re.I):
+                continue  # número de página solto
+            if linha.startswith("#"):
+                linha = linha.replace("**", "").rstrip()  # "## **03 Título**" vira "## 03 Título"
+                nivel = linha.split(" ", 1)[0]
+                anterior = next((l for l in reversed(linhas) if l.strip()), "")
+                if anterior.split(" ", 1)[0] == nivel:  # título longo quebrado em duas linhas
+                    while not linhas[-1].strip():
+                        linhas.pop()
+                    linhas[-1] += " " + linha[len(nivel):].strip()
+                    continue
+            linhas.append(linha)
+    texto = re.sub(r"\n{3,}", "\n\n", "\n".join(linhas)).strip()
+    if len(texto) < MINIMO_PDF:
+        raise ValueError(f"PDF sem texto extraível (escaneado?): {arquivo.name}")
+    return texto
+
+
+def ler_documento(arquivo: Path) -> str:
+    """O texto do documento em Markdown, venha ele de um .md ou de um .pdf."""
+    if arquivo.suffix.lower() == ".pdf":
+        return pdf_para_markdown(arquivo)
+    return arquivo.read_text(encoding="utf-8")
+
+
 def dividir_em_trechos(cfg: dict) -> tuple[int, list[dict]]:
-    """Lê todos os .md da pasta e devolve (quantidade de documentos, lista de trechos)."""
-    arquivos = sorted(Path(cfg["pasta"]).glob("*.md"))
+    """Lê todos os .md e .pdf da pasta e devolve (quantidade de documentos, lista de trechos)."""
+    arquivos = sorted(a for a in Path(cfg["pasta"]).iterdir()
+                      if a.suffix.lower() in EXTENSOES and not a.name.startswith("."))
     trechos = []
     for arquivo in arquivos:
-        for secao, conteudo in dividir_em_secoes(arquivo.read_text(encoding="utf-8")):
+        for secao, conteudo in dividir_em_secoes(ler_documento(arquivo)):
             for pedaco in subdividir(conteudo, cfg["tamanho_trecho"], cfg["sobreposicao"]):
                 trechos.append({"fonte": arquivo.name, "secao": secao, "conteudo": pedaco})
     return len(arquivos), trechos

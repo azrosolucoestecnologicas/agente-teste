@@ -1,0 +1,22 @@
+# O serviço do Render como código (Blueprint). No painel: New > Blueprint > este repositório.
+# As chaves NÃO ficam aqui: "sync: false" faz o Render pedir o valor na criação (Environment do serviço).
+services:
+  - type: web
+    name: professor-nta # vira professor-nta.onrender.com (se o nome estiver livre)
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free # free dorme após 15 min sem acesso; para ficar sempre ligado, use starter (pago)
+    region: virginia # a região mais perto do Brasil
+    healthCheckPath: /api/saude # o Render só troca a versão se esta rota responder 200
+    autoDeployTrigger: "off" # quem publica é o GitHub Actions, depois do portão (Deploy Hook)
+    envVars:
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false

@@ -1,0 +1,62 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* Tema escuro ligado pela classe .dark no <html> (botão de sol e lua) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* As cores "marca" vêm do config.yml pelo /api/config; estes são os padrões (azul) */
+:root {
+  --marca-50: #eff6ff;
+  --marca-100: #dbeafe;
+  --marca-500: #3b82f6;
+  --marca-600: #2563eb;
+  --marca-700: #1d4ed8;
+  --marca-900: #1e3a8a;
+  --destaque-500: #3b82f6;
+  --destaque-600: #2563eb;
+}
+
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-marca-50: var(--marca-50);
+  --color-marca-100: var(--marca-100);
+  --color-marca-500: var(--marca-500);
+  --color-marca-600: var(--marca-600);
+  --color-marca-700: var(--marca-700);
+  --color-marca-900: var(--marca-900);
+  --color-destaque-500: var(--destaque-500);
+  --color-destaque-600: var(--destaque-600);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+}
+
+/* Três pontinhos do "Consultando o material…" */
+@keyframes pulo {
+  0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-3px); }
+}
+.ponto {
+  animation: pulo 1.2s infinite ease-in-out;
+}
+.ponto:nth-child(2) { animation-delay: 0.15s; }
+.ponto:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes surgir {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.surgir {
+  animation: surgir 0.25s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ponto, .surgir { animation: none; }
+}

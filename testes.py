@@ -4,6 +4,7 @@ Se qualquer verificação falhar, o processo para e a versão antiga continua no
 """
 import ast
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -54,18 +55,29 @@ if logo and not logo.startswith("http"):
     elif not logo.lower().endswith(".svg"):
         erros.append("logo dentro do repositório precisa ser .svg (ou use um link https)")
 
-# 6. O app.py tem sintaxe Python válida?
-try:
-    ast.parse(Path("app.py").read_text(encoding="utf-8"))
-except SyntaxError as e:
-    erros.append(f"erro de sintaxe no app.py, linha {e.lineno}: {e.msg}")
+# 6. O servidor.py e o chat.py têm sintaxe Python válida? (Parte 3: o app.py saiu)
+for nome in ["servidor.py", "chat.py"]:
+    try:
+        ast.parse(Path(nome).read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        erros.append(f"{nome} não encontrado")
+    except SyntaxError as e:
+        erros.append(f"erro de sintaxe no {nome}, linha {e.lineno}: {e.msg}")
+
+
+def arquivos_do_projeto():
+    """Os arquivos do repositório, sem .git, dependências instaladas (node_modules) e o build (frontend/dist)."""
+    for arquivo in Path(".").rglob("*"):
+        if arquivo.is_file() and not {".git", "node_modules", "dist"} & set(arquivo.parts):
+            yield arquivo
+
+
+TEXTO = {".py", ".yml", ".yaml", ".md", ".txt", ".svg", ".json", ".js", ".jsx", ".html", ".css", ".toml"}
 
 # 7. Nenhuma chave de API foi colocada por engano nos arquivos
 padrao = re.compile(r"sk-or-[A-Za-z0-9_\-]{10,}|sk-ant-[A-Za-z0-9_\-]{10,}|sk-proj-[A-Za-z0-9_\-]{10,}|hf_[A-Za-z0-9]{20,}")
-for arquivo in Path(".").rglob("*"):
-    if ".git" in arquivo.parts or not arquivo.is_file():
-        continue
-    if arquivo.suffix in {".py", ".yml", ".yaml", ".md", ".txt", ".svg", ".json"}:
+for arquivo in arquivos_do_projeto():
+    if arquivo.suffix in TEXTO:
         if padrao.search(arquivo.read_text(encoding="utf-8", errors="ignore")):
             erros.append(f"possível chave de API dentro de {arquivo}: remova e REVOGUE a chave")
 
@@ -101,20 +113,24 @@ if base["ativa"] is True and mensagem not in str(config.get("prompt_sistema", ""
     erros.append(f"o prompt_sistema precisa conter a frase exata de mensagem_nao_encontrado: \"{mensagem}\"")
 
 if base["ativa"] is True:
-    # T11. A pasta de documentos existe, só tem .md, e cada um tem título e conteúdo
+    # T11. A pasta de documentos existe, só tem .md e .pdf, e cada .md tem título e conteúdo
+    # (o .pdf é conferido na indexação, depois de convertido para Markdown: RF31)
     pasta = Path(str(base["pasta"]))
-    documentos = sorted(pasta.glob("*.md")) if pasta.is_dir() else []
+    documentos = sorted(a for a in pasta.iterdir() if a.suffix.lower() in {".md", ".pdf"}
+                        and not a.name.startswith(".")) if pasta.is_dir() else []
     if not pasta.is_dir():
         erros.append(f"pasta de documentos '{pasta}' não encontrada")
     elif not documentos:
-        erros.append(f"a pasta '{pasta}' não tem nenhum arquivo .md")
+        erros.append(f"a pasta '{pasta}' não tem nenhum arquivo .md ou .pdf")
     else:
         for arquivo in pasta.iterdir():
             if arquivo.name.startswith("."):
                 continue
-            if arquivo.suffix.lower() != ".md":
-                erros.append(f"'{arquivo}' não é .md: deixe só Markdown na pasta de documentos (PDF e Word ficam fora)")
-        for arquivo in documentos:
+            if arquivo.suffix.lower() not in {".md", ".pdf"}:
+                erros.append(f"'{arquivo}' não é .md nem .pdf: Word e outros formatos ficam fora (salve como PDF)")
+            elif arquivo.suffix.lower() == ".pdf" and arquivo.stat().st_size > 50 * 1024 * 1024:
+                erros.append(f"'{arquivo}' passa de 50 MB: divida o PDF em partes menores")
+        for arquivo in (d for d in documentos if d.suffix.lower() == ".md"):
             texto = arquivo.read_text(encoding="utf-8", errors="ignore")
             if not re.search(r"^#{1,3} \S", texto, re.M):
                 erros.append(f"'{arquivo}' não tem nenhum título (linha começando com #)")
@@ -146,12 +162,45 @@ if base["ativa"] is True:
 
 # T13. Nenhuma chave secreta do Supabase nos arquivos (nem token JWT, formato das chaves antigas)
 padrao_supabase = re.compile(r"sb_secret_[A-Za-z0-9_\-]{20,}|eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}")
-for arquivo in Path(".").rglob("*"):
-    if ".git" in arquivo.parts or not arquivo.is_file():
-        continue
-    if arquivo.suffix in {".py", ".yml", ".yaml", ".md", ".txt", ".svg", ".json", ".sql"}:
+for arquivo in arquivos_do_projeto():
+    if arquivo.suffix in TEXTO | {".sql"}:
         if padrao_supabase.search(arquivo.read_text(encoding="utf-8", errors="ignore")):
             erros.append(f"possível chave do Supabase dentro de {arquivo}: remova e REVOGUE a chave no painel")
+
+# ------------------------------------------------------------ Parte 3: interface e produção
+
+# T15. O bloco interface respeita o contrato (seção 7 da spec da Parte 3). Todos os campos são opcionais.
+interface = config.get("interface") or {}
+if not isinstance(interface, dict):
+    erros.append("interface: precisa ser um bloco com campos (tema_inicial, rodape, ...)")
+    interface = {}
+conhecidos = {"tema_inicial", "rodape", "limite_caracteres", "perguntas_por_minuto"}
+for campo in sorted(set(interface) - conhecidos):
+    erros.append(f"interface.{campo} não existe. Campos aceitos: {', '.join(sorted(conhecidos))}")
+if "tema_inicial" in interface and interface["tema_inicial"] not in {"claro", "escuro", "sistema"}:
+    erros.append("interface.tema_inicial precisa ser claro, escuro ou sistema")
+if "rodape" in interface and not (isinstance(interface["rodape"], str) and 0 < len(interface["rodape"]) <= 200):
+    erros.append("interface.rodape precisa ser um texto de até 200 caracteres")
+for campo, minimo, maximo in [("limite_caracteres", 200, 4000), ("perguntas_por_minuto", 1, 60)]:
+    valor = interface.get(campo, minimo)
+    if not isinstance(valor, int) or isinstance(valor, bool) or not minimo <= valor <= maximo:
+        erros.append(f"interface.{campo} precisa ser um número inteiro de {minimo} a {maximo} (está: {valor})")
+
+# T17. O front-end não carrega segredo: o build não tem chave nem nome de variável secreta,
+# e nenhum frontend/.env* está no Git (tudo que vai para o front-end é público)
+segredos = re.compile(padrao.pattern + "|" + padrao_supabase.pattern
+                      + r"|OPENROUTER_API_KEY|ANTHROPIC_API_KEY|OPENAI_API_KEY|SUPABASE_SECRET_KEY|HF_TOKEN")
+dist = Path("frontend/dist")
+for arquivo in (dist.rglob("*") if dist.is_dir() else []):
+    if arquivo.is_file() and segredos.search(arquivo.read_text(encoding="utf-8", errors="ignore")):
+        erros.append(f"o build do front-end ({arquivo}) contém chave ou nome de variável secreta")
+try:
+    versionados = subprocess.run(["git", "ls-files", "frontend"], capture_output=True, text=True).stdout.split()
+except FileNotFoundError:
+    versionados = []
+for nome in versionados:
+    if Path(nome).name.startswith(".env"):
+        erros.append(f"{nome} está no Git: o front-end não guarda configuração secreta; apague e revogue as chaves")
 
 if erros:
     print("O portão barrou o deploy:\n")

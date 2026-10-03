@@ -45,6 +45,11 @@ perguntas:
     fonte_esperada: parte2-rag.md
     secao_esperada: banco vetorial
 
+  # Parte 3: a resposta está num PDF (a apostila convertida para Markdown na indexação)
+  - pergunta: Por que o Auto-Deploy do Render precisa ficar desligado?
+    fonte_esperada: parte3-frontend-producao.pdf
+    secao_esperada: Render
+
   # Para demonstrar o portão em aula: descomente as duas perguntas abaixo e faça commit.
   # Nenhum documento tem essas respostas: com duas perguntas a mais e nenhum acerto novo,
   # o hit rate cai abaixo do limiar de 0,85 e o job avaliar fica vermelho.

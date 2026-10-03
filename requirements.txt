@@ -3,3 +3,5 @@ openai
 pyyaml
 fastembed
 supabase
+fastapi
+uvicorn

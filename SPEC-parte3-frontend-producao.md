@@ -58,7 +58,7 @@ GitHub Actions: testar ──► avaliar ──► publicar ──► verificar
 
 | Item | Decisão | Motivo |
 |---|---|---|
-| Front-end | React 18 + Vite, JavaScript (JSX), Tailwind CSS, `react-markdown` | Componentes, build rápido, visual moderno sem CSS manual |
+| Front-end | React 19 + Vite, JavaScript (JSX), Tailwind CSS 4 (plugin `@tailwindcss/vite`, sem arquivo de configuração), `react-markdown`, ícones `lucide-react` | Componentes, build rápido, visual moderno sem CSS manual |
 | Servidor | FastAPI + Uvicorn | API com validação (Pydantic), streaming e arquivos estáticos no mesmo app |
 | Streaming | Server-Sent Events (SSE) sobre `POST /api/perguntar` | Texto chega aos poucos; mais simples que WebSocket |
 | Provedores | Os da parte 1, reaproveitados em `chat.py` | Nada muda no comportamento |
@@ -70,7 +70,7 @@ GitHub Actions: testar ──► avaliar ──► publicar ──► verificar
 **Restrições conhecidas:**
 - R13. **Memória.** Os planos Free e Starter do Render têm 512 MB de RAM. O modelo de embedding (cerca de 220 MB) cabe, mas com pouca folga: o modelo é carregado uma vez, ao iniciar, e baixado **durante o build da imagem**, não a cada início. Se os logs mostrarem falta de memória, o próximo plano com mais RAM é o Standard.
 - R14. **Plano Free dorme** após cerca de 15 minutos sem acesso e leva perto de um minuto para acordar. Para aula e demonstração, acorde o serviço antes ou use o Starter.
-- R15. **Auto-Deploy desligado.** Se o Render publicasse sozinho a cada commit, o portão seria ignorado. Quem dispara o deploy é o job `publicar`, pelo Deploy Hook. No `render.yaml`, `autoDeployTrigger: off`; confira o nome do campo na documentação atual do Render.
+- R15. **Auto-Deploy desligado.** Se o Render publicasse sozinho a cada commit, o portão seria ignorado. Quem dispara o deploy é o job `publicar`, pelo Deploy Hook. No `render.yaml`, `autoDeployTrigger: "off"`, entre aspas (sem aspas, o YAML lê `off` como falso); confira o nome do campo na documentação atual do Render.
 - R16. **Nada de segredo no front-end.** Variáveis com prefixo `VITE_` são embutidas no JavaScript entregue ao navegador. Nenhuma chave pode usar esse prefixo, e o front-end só conhece rotas relativas (`/api/...`).
 - R17. **Porta.** O Render informa a porta na variável `PORT`; o servidor escuta em `0.0.0.0:$PORT`.
 - R18. **Binários.** Com o deploy fora do Hugging Face, PDFs podem ficar no repositório (limite do GitHub: 100 MB por arquivo). A regra de não versionar outros binários continua.
@@ -79,8 +79,7 @@ GitHub Actions: testar ──► avaliar ──► publicar ──► verificar
 
 ```
 frontend/                    NOVO   interface React + Vite
-  index.html, package.json, package-lock.json, vite.config.js
-  tailwind.config.js, postcss.config.js
+  index.html, package.json, package-lock.json, vite.config.js, .gitignore
   src/main.jsx, src/App.jsx, src/api.js, src/index.css
   src/components/ Cabecalho.jsx, Conversa.jsx, Mensagem.jsx, CartaoFonte.jsx,
                   Sugestoes.jsx, CaixaPergunta.jsx, AlternarTema.jsx
@@ -120,7 +119,7 @@ Todas as rotas ficam sob `/api`. O front-end usa caminhos relativos.
 | `GET /api/saude` | — | `{"status": "ok", "versao": "<commit>", "trechos_na_producao": N}` | 503 se o banco ou o modelo de embedding não estiverem prontos |
 | `GET /api/config` | — | `{nome, descricao, exemplos, logo_url, logo_altura, cores: {principal, secundaria}, interface: {...}}`. **Nunca** inclui chaves, modelos, prompt ou provedores | — |
 | `POST /api/perguntar` | `{"mensagem": "...", "historico": [{"role": "user"\|"assistant", "content": "..."}]}` | `text/event-stream` com os eventos abaixo | 422 entrada inválida; 413 pergunta acima do limite; 429 limite por minuto (com `Retry-After`) |
-| `GET /logo.svg` (ou o arquivo do `config.yml`) | — | a logo | 404 |
+| `GET /api/logo` | — | a logo do `config.yml` (arquivo .svg ou redirecionamento para o link https) | 404 |
 
 **Eventos do `/api/perguntar`**, nesta ordem:
 
@@ -189,10 +188,12 @@ Os testes das partes 1 e 2 continuam valendo, com dois ajustes: o **T6** confere
 testar ──► avaliar ──► publicar ──► verificar
 ```
 
+Num **pull request**, só `testar` e `avaliar` rodam: o portão responde antes do merge e nada é publicado. `publicar` e `verificar` rodam apenas em commits na `main`.
+
 1. **testar:** Python 3.11 e Node 20; `npm ci && npm run build`; `pip install -r requirements.txt pytest`; `python testes.py` (T1 a T17, exceto T14); `pytest testes_api.py` (T16).
 2. **avaliar:** como na parte 2, instalando também `pymupdf4llm`.
-3. **publicar:** promove a coleção (`python indexar.py --promover`) e dispara o deploy: `curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL"`. O envio ao Hugging Face sai do workflow.
-4. **verificar:** consulta `https://<servico>.onrender.com/api/saude` a cada 20 segundos, por até 10 minutos, até receber `status: ok` com `versao` igual ao commit do workflow (`GITHUB_SHA`). Se não acontecer, o job falha e o log mostra a última resposta. O endereço fica na variável de repositório `RENDER_URL` (Settings → Secrets and variables → Actions → Variables).
+3. **publicar:** promove a coleção (`python indexar.py --promover`) e dispara o deploy: `curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL&ref=$GITHUB_SHA"` (o `ref` pede exatamente o commit que passou no portão). O envio ao Hugging Face sai do workflow.
+4. **verificar:** consulta `https://<servico>.onrender.com/api/saude` a cada 20 segundos, por até 15 minutos (o primeiro build no Render é o mais lento), até receber `status: ok` com `versao` igual ao commit do workflow (`GITHUB_SHA`). Se não acontecer, o job falha e o log mostra a última resposta. O endereço fica na variável de repositório `RENDER_URL` (Settings → Secrets and variables → Actions → Variables).
 
 **`render.yaml` (esboço):**
 
@@ -202,10 +203,10 @@ services:
     name: professor-nta              # vira professor-nta.onrender.com (se livre)
     runtime: docker
     plan: free                       # starter para não dormir
-    region: ohio
+    region: virginia                 # a mais perto do Brasil
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/saude
-    autoDeployTrigger: off           # quem publica é o GitHub Actions (R15)
+    autoDeployTrigger: "off"         # quem publica é o GitHub Actions (R15)
     envVars:
       - key: SUPABASE_URL
         sync: false
