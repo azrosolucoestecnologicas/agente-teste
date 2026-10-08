@@ -34,23 +34,23 @@ Hoje o assistente funciona, mas tem cara de protótipo: a interface é a padrão
 
 ## Onde eu quero publicar
 
-- No **Render**, num endereço como `professor-nta.onrender.com`, com HTTPS.
-- O deploy continua passando pelo portão: o GitHub Actions testa, avalia a busca e só então manda o Render publicar. Nada de publicar sozinho a cada commit sem teste.
+- No **Railway**, num endereço como `professor-nta.up.railway.app`, com HTTPS.
+- O deploy continua passando pelo portão: o GitHub Actions testa, avalia a busca e só então manda o Railway publicar. Nada de publicar sozinho a cada commit sem teste.
 - Depois do deploy, alguma coisa confere se o site novo está de pé e respondendo.
-- A configuração do Render fica num arquivo do repositório, não só em cliques no painel.
+- A configuração do Railway fica num arquivo do repositório, não só em cliques no painel.
 - O Space do Hugging Face deixa de ser o destino do deploy.
 
 ## O que NÃO entra agora
 
 - Login de usuários e conversas salvas.
 - Enviar documentos pela interface do chat (os documentos continuam entrando pelo repositório).
-- Domínio próprio (fica o subdomínio do Render).
+- Domínio próprio (fica o subdomínio do Railway).
 - OCR para PDF escaneado.
 - Pagamento, planos ou painel administrativo.
 
 ## Como vou saber que deu certo
 
-- Abro `https://<meu-servico>.onrender.com` e vejo uma interface bonita, com a minha logo e as minhas cores, no computador e no celular.
+- Abro `https://<meu-servico>.up.railway.app` e vejo uma interface bonita, com a minha logo e as minhas cores, no computador e no celular.
 - Pergunto algo do material e a resposta chega aos poucos, com cartões de fonte que mostram o trecho usado.
 - Coloco um PDF na pasta `documentos/`, faço commit, e o assistente passa a responder sobre ele.
 - Abro o código-fonte da página no navegador e não encontro chave nenhuma.
@@ -68,20 +68,20 @@ Leia os arquivos IDEIA-parte3.md, SPEC-parte1-cicd-deploy.md e SPEC-parte2-rag.m
 As specs das partes 1 e 2 já estão implementadas; a ideia descreve o que eu quero agora.
 
 Antes de escrever qualquer coisa, me faça as perguntas que faltarem para você
-decidir (por exemplo: qual biblioteca de interface usar, o nome do serviço no Render,
-o plano do Render, os limites de uso). Faça no máximo 5 perguntas, uma lista só.
+decidir (por exemplo: qual biblioteca de interface usar, o nome do serviço no Railway,
+o plano do Railway, os limites de uso). Faça no máximo 5 perguntas, uma lista só.
 
 Depois, gere o arquivo SPEC-parte3-frontend-producao.md no mesmo formato das specs anteriores, com:
 1. Objetivo, escopo e o que fica fora
 2. Arquitetura: o que roda no navegador, no servidor, no Supabase e no GitHub Actions
-3. Stack do front-end e do servidor, e restrições conhecidas do Render
+3. Stack do front-end e do servidor, e restrições conhecidas do Railway
 4. Arquivos novos, alterados e removidos
 5. Contrato da API: cada rota, o que recebe, o que devolve e os erros
 6. Requisitos funcionais da interface e do servidor, continuando a numeração
 7. Como os PDFs entram na base de conhecimento
 8. Segurança: onde ficam as chaves, limites de uso e o que nunca pode ir para o navegador
 9. Novas verificações do portão, continuando a numeração
-10. Pipeline de deploy no Render, a configuração no repositório e a verificação depois do deploy
+10. Pipeline de deploy no Railway, a configuração no repositório e a verificação depois do deploy
 11. Critérios de aceite em formato de checklist
 12. Ordem das tarefas de implementação, uma de cada vez
 13. Erros comuns e como resolver

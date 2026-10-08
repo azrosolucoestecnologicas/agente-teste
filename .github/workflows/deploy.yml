@@ -1,16 +1,10 @@
-name: Testar e publicar no Hugging Face
-
-# ------------------------------------------------------------
-# EDITE AQUI: seu usuário e o nome do Space que você criou
-# ------------------------------------------------------------
-env:
-  HF_USUARIO: thiagoazro
-  HF_SPACE: meu-assisntente
+name: Testar e publicar no Railway
 
 # Gatilhos: o que faz este processo começar
 on:
   push:
-    branches: [main] # todo commit na branch principal
+    branches: [main] # todo commit na branch principal: testa e publica
+  pull_request: # todo pull request: só testa (o portão roda antes do merge)
   workflow_dispatch: # o botão "Run workflow" na aba Actions
 
 # Um deploy por vez: dois pushes seguidos não gravam a coleção 'teste' ao mesmo tempo
@@ -19,12 +13,23 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Job 1: o portão. Se falhar, o job 2 nem começa.
+  # Job 1: o portão. Se falhar, nenhum outro job começa.
   testar:
     runs-on: ubuntu-latest
     steps:
       - name: Baixar o repositório
         uses: actions/checkout@v4
+
+      - name: Instalar o Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Compilar o front-end
+        working-directory: frontend
+        run: npm ci && npm run build
 
       - name: Instalar o Python
         uses: actions/setup-python@v5
@@ -32,10 +37,13 @@ jobs:
           python-version: "3.11"
 
       - name: Instalar dependências do teste
-        run: pip install pyyaml
+        run: pip install -r requirements.txt pytest
 
-      - name: Rodar o portão
+      - name: Rodar o portão (T1 a T17)
         run: python testes.py
+
+      - name: Testar a API (T16)
+        run: pytest testes_api.py -v
 
   # Job 2: o portão da busca (Parte 2). Monta o índice novo na coleção 'teste' do Supabase
   # e faz as perguntas de teste. Se falhar, a coleção 'producao' (o que está no ar) nem é tocada.
@@ -54,8 +62,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Instalar dependências da indexação
-        run: pip install fastembed supabase pyyaml
+      - name: Instalar dependências da indexação (com a leitura de PDF)
+        run: pip install fastembed supabase pyyaml pymupdf4llm
 
       - name: Montar o índice na coleção teste
         run: python indexar.py
@@ -63,15 +71,17 @@ jobs:
       - name: Rodar as perguntas de teste
         run: python avaliar.py
 
-  # Job 3: publicação. Só roda se o "avaliar" passou.
+  # Job 3: publicação. Só roda num commit da main e se o "avaliar" passou.
+  # Promove o índice testado. O site novo vai para o ar pelo Railway, que está com "Wait for CI"
+  # ligado: ele só faz o deploy deste commit quando TODOS os jobs deste workflow passam,
+  # e só troca a versão no ar quando o health check (/api/saude) responde.
   publicar:
     needs: avaliar
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - name: Baixar o repositório com o histórico completo
+      - name: Baixar o repositório
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # o Hugging Face recusa o envio sem o histórico
 
       - name: Instalar o Python
         uses: actions/setup-python@v5
@@ -85,10 +95,3 @@ jobs:
         run: |
           pip install supabase pyyaml
           python indexar.py --promover
-
-      - name: Enviar para o Space
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: |
-          REPO="huggingface.co/spaces/${HF_USUARIO}/${HF_SPACE}"
-          git push --force "https://${HF_USUARIO}:${HF_TOKEN}@${REPO}" HEAD:main

@@ -1,0 +1,14 @@
+# O que NÃO entra na imagem: Git, dependências e build locais, segredos e material de aula
+.git
+.github
+**/node_modules
+frontend/dist
+**/__pycache__
+*.pyc
+.env
+.env.*
+**/.env*
+apostilas
+documentos
+*.md
+!README.md

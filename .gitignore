@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 .env
 
-# PDFs e outros binários ficam fora: o Hugging Face recusa binários no push
+# Apostilas geradas ficam fora. PDFs da base de conhecimento (documentos/) entram (Parte 3)
 apostilas/
 *.pdf
+!documentos/*.pdf
