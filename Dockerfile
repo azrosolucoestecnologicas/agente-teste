@@ -15,15 +15,19 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     FASTEMBED_CACHE_PATH=/app/modelos
 
+# O front-end compilado entra primeiro: assim o Docker termina o estágio 1 antes de instalar o Python.
+# Rodando um de cada vez, o build cabe nos 512 MB do Render (em paralelo, estoura a memória).
+COPY --from=frontend /frontend/dist ./frontend/dist
+
 COPY requirements.txt ./
 RUN pip install -r requirements.txt
 
-# Baixa o modelo de embedding durante o build: o servidor sobe sem depender do Hugging Face
+# Baixa o modelo de embedding durante o build: o servidor sobe sem depender do Hugging Face.
+# lazy_load=True só baixa o arquivo, sem carregar o modelo na memória (economiza RAM no build)
 COPY config.yml rag.py ./
-RUN python -c "import rag; rag.carregar_modelo(rag.carregar_config())"
+RUN python -c "import rag; from fastembed import TextEmbedding; TextEmbedding(rag.carregar_config()['modelo_embedding'], lazy_load=True)"
 
 COPY . .
-COPY --from=frontend /frontend/dist ./frontend/dist
 
 # Roda sem ser root
 RUN useradd --create-home assistente && chown -R assistente /app
