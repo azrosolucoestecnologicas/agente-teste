@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import Mensagem from "./Mensagem.jsx";
 
-export default function Conversa({ mensagens, aoTentarDeNovo }) {
+export default function Conversa({ mensagens, aoTentarDeNovo, mascote }) {
   const fimRef = useRef(null);
   const areaRef = useRef(null);
   const ultima = mensagens[mensagens.length - 1];
@@ -20,7 +20,7 @@ export default function Conversa({ mensagens, aoTentarDeNovo }) {
     <div ref={areaRef} className="flex-1 overflow-y-auto">
       <div role="log" aria-live="polite" aria-label="Conversa" className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6">
         {mensagens.map((m) => (
-          <Mensagem key={m.id} mensagem={m} aoTentarDeNovo={() => aoTentarDeNovo(m.id)} />
+          <Mensagem key={m.id} mensagem={m} mascote={mascote} aoTentarDeNovo={() => aoTentarDeNovo(m.id)} />
         ))}
         <div ref={fimRef} />
       </div>

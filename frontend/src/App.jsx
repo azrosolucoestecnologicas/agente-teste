@@ -3,10 +3,24 @@ import { ErroApi, carregarConfig, perguntar } from "./api.js";
 import Cabecalho from "./components/Cabecalho.jsx";
 import CaixaPergunta from "./components/CaixaPergunta.jsx";
 import Conversa from "./components/Conversa.jsx";
+import Mascote from "./components/Mascote.jsx";
 import Sugestoes from "./components/Sugestoes.jsx";
 
 let proximoId = 0;
 const novoId = () => ++proximoId;
+
+// O que o robô está fazendo, a partir da última mensagem da conversa
+function estadoDoRobo(mensagens, digitando) {
+  const ultima = mensagens[mensagens.length - 1];
+  if (ultima?.role === "assistant") {
+    if (ultima.status === "pensando") return "pensando";
+    if (ultima.status === "escrevendo") return "escrevendo";
+    if (ultima.status === "erro") return ultima.limite ? "limite" : "triste";
+    if (digitando) return "digitando";
+    return ultima.naoEncontrado ? "confuso" : "feliz";
+  }
+  return digitando ? "digitando" : "ocioso";
+}
 
 // Passa as cores do config.yml para as variáveis CSS usadas pelo Tailwind (bg-marca-600 etc.)
 function aplicarCores(cores) {
@@ -21,6 +35,7 @@ export default function App() {
   const [erroConfig, setErroConfig] = useState(false);
   const [mensagens, setMensagens] = useState([]);
   const [ocupado, setOcupado] = useState(false);
+  const [digitando, setDigitando] = useState(false);
   const caixaRef = useRef(null);
 
   useEffect(() => {
@@ -132,16 +147,25 @@ export default function App() {
   }
 
   const vazia = mensagens.length === 0;
+  const comMascote = config.interface.mascote !== false;
+  const ultima = mensagens[mensagens.length - 1];
+  const estado = estadoDoRobo(mensagens, digitando);
+  const chave = ultima ? `${ultima.id}-${ultima.status}` : "inicio";
 
   return (
     <div className="flex h-full flex-col">
       <Cabecalho config={config} podeLimpar={!vazia && !ocupado} aoLimpar={novaConversa} />
       <main className="relative flex min-h-0 flex-1 flex-col">
         {vazia ? (
-          <Sugestoes config={config} aoEscolher={(t) => enviar(t)} />
+          <Sugestoes
+            config={config}
+            aoEscolher={(t) => enviar(t)}
+            mascote={comMascote && <Mascote variante="inicio" estado={estado} chave={chave} saudacao={`Olá! Eu sou o ${config.nome}. Como posso ajudar?`} />}
+          />
         ) : (
-          <Conversa mensagens={mensagens} aoTentarDeNovo={tentarDeNovo} />
+          <Conversa mensagens={mensagens} aoTentarDeNovo={tentarDeNovo} mascote={comMascote} />
         )}
+        {comMascote && !vazia && <Mascote variante="lateral" estado={estado} chave={chave} />}
       </main>
       <CaixaPergunta
         ref={caixaRef}
@@ -149,6 +173,8 @@ export default function App() {
         limite={config.interface.limite_caracteres}
         rodape={config.interface.rodape}
         aoEnviar={(t) => enviar(t)}
+        aoDigitar={setDigitando}
+        mascote={comMascote && !vazia && <Mascote variante="compacto" estado={estado} chave={chave} />}
       />
     </div>
   );

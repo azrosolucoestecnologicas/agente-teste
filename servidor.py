@@ -29,6 +29,7 @@ INTERFACE = {
     "rodape": "Respostas geradas por IA com base no material de consulta.",
     "limite_caracteres": 2000,
     "perguntas_por_minuto": 10,
+    "mascote": True,
     **(CONFIG.get("interface") or {}),
 }
 MAX_HISTORICO = 20

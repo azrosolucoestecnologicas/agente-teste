@@ -1,7 +1,7 @@
 import { ArrowUp } from "lucide-react";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-export default function CaixaPergunta({ ref, ocupado, limite, rodape, aoEnviar }) {
+export default function CaixaPergunta({ ref, ocupado, limite, rodape, aoEnviar, aoDigitar, mascote }) {
   const [texto, setTexto] = useState("");
   const interno = useRef(null);
 
@@ -18,6 +18,12 @@ export default function CaixaPergunta({ ref, ocupado, limite, rodape, aoEnviar }
     caixa.style.height = "auto";
     caixa.style.height = `${Math.min(caixa.scrollHeight, 200)}px`;
   }, [texto]);
+
+  // O robô olha para a caixa enquanto há texto sendo escrito
+  const temTexto = texto.trim().length > 0;
+  useEffect(() => {
+    aoDigitar?.(temTexto);
+  }, [temTexto, aoDigitar]);
 
   const passou = texto.length > limite;
   const pode = texto.trim().length > 0 && !passou && !ocupado;
@@ -37,7 +43,9 @@ export default function CaixaPergunta({ ref, ocupado, limite, rodape, aoEnviar }
           enviar();
         }}
       >
-        <div className="flex items-end gap-2 rounded-2xl border border-slate-300 bg-white p-2 shadow-sm transition focus-within:border-marca-500 focus-within:ring-4 focus-within:ring-marca-500/15 dark:border-slate-700 dark:bg-slate-900">
+        <div className="flex items-stretch gap-2">
+        {mascote && <div className="lg:hidden">{mascote}</div>}
+        <div className="flex flex-1 items-end gap-2 rounded-2xl border border-slate-300 bg-white p-2 shadow-sm transition focus-within:border-marca-500 focus-within:ring-4 focus-within:ring-marca-500/15 dark:border-slate-700 dark:bg-slate-900">
           <label htmlFor="pergunta" className="sr-only">
             Sua pergunta
           </label>
@@ -65,6 +73,7 @@ export default function CaixaPergunta({ ref, ocupado, limite, rodape, aoEnviar }
           >
             <ArrowUp className="size-5" aria-hidden="true" />
           </button>
+        </div>
         </div>
         <div className="mt-2 flex items-center justify-between gap-3 px-1 text-xs text-slate-500 dark:text-slate-400">
           <p>{rodape}</p>

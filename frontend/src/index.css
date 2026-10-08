@@ -57,6 +57,41 @@ body {
   animation: surgir 0.25s ease-out;
 }
 
+/* ---------- Robô (Professor NTA) ---------- */
+@keyframes robo-flutuar { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes robo-sombra { 0%, 100% { transform: scaleX(1); opacity: 0.15; } 50% { transform: scaleX(0.85); opacity: 0.09; } }
+@keyframes robo-piscar { 0%, 93%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+@keyframes robo-antena { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes robo-coracao { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.25); } }
+@keyframes robo-varrer { 0%, 100% { transform: translateX(-3px); } 50% { transform: translateX(3px); } }
+@keyframes robo-falar { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.35); } }
+@keyframes robo-acenar {
+  0%, 100% { transform: rotate(0deg); }
+  20%, 60% { transform: rotate(-150deg); }
+  40%, 80% { transform: rotate(-110deg); }
+}
+@keyframes robo-jato { 0%, 100% { opacity: 0.8; } 50% { opacity: 0.3; } }
+@keyframes balao { from { opacity: 0; transform: translateY(4px) scale(0.96); } to { opacity: 1; transform: none; } }
+
+.robo { overflow: visible; }
+.robo-flutua { animation: robo-flutuar 3.2s ease-in-out infinite; }
+.robo-sombra { animation: robo-sombra 3.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.robo-olhos { animation: robo-piscar 4.5s infinite; }
+.robo-jato { animation: robo-jato 0.9s ease-in-out infinite; }
+.robo-coracao { transform-box: fill-box; transform-origin: center; }
+.robo-cabeca { transition: transform 0.35s ease; }
+.robo-pensando .robo-antena { animation: robo-antena 0.7s ease-in-out infinite; }
+.robo-pensando .robo-coracao { animation: robo-coracao 0.7s ease-in-out infinite; }
+.robo-varre { animation: robo-varrer 0.9s ease-in-out infinite; }
+.robo-fala { animation: robo-falar 0.28s ease-in-out infinite; }
+.robo-aceno { animation: robo-acenar 1.3s ease-in-out 2; }
+.robo-confuso .robo-cabeca { transform: rotate(-9deg); }
+.robo-triste .robo-cabeca, .robo-limite .robo-cabeca { transform: translateY(2px); }
+.robo-digitando .robo-cabeca { transform: rotate(4deg); }
+.balao { animation: balao 0.25s ease-out; }
+
 @media (prefers-reduced-motion: reduce) {
-  .ponto, .surgir { animation: none; }
+  .ponto, .surgir, .balao,
+  .robo-flutua, .robo-sombra, .robo-olhos, .robo-jato, .robo-antena, .robo-coracao,
+  .robo-varre, .robo-fala, .robo-aceno { animation: none !important; }
 }

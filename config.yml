@@ -108,3 +108,6 @@ interface:
 
   # Quantas perguntas cada visitante pode fazer por minuto (1 a 60). Protege o seu crédito de IA
   perguntas_por_minuto: 10
+
+  # true: o robô (Professor NTA) acompanha a conversa e reage a cada momento. false: sem robô
+  mascote: true
