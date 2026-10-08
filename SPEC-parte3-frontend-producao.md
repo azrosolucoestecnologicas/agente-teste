@@ -107,6 +107,7 @@ Os campos das partes 1 e 2 não mudam. A interface usa `nome`, `descricao`, `tem
 | `interface.rodape` | não | texto curto exibido no rodapé | `Respostas geradas por IA com base no material de consulta.` |
 | `interface.limite_caracteres` | não | inteiro de 200 a 4000: tamanho máximo da pergunta | 2000 |
 | `interface.perguntas_por_minuto` | não | inteiro de 1 a 60, por visitante | 10 |
+| `interface.mascote` | não | `true` ou `false`: o robô Professor NTA acompanha a conversa | `true` |
 
 As cores da interface vêm do `tema` da parte 1: o servidor traduz cada nome (`azul`, `verde`...) para uma escala de cores hexadecimais e entrega ao front-end.
 
@@ -153,6 +154,7 @@ Continuação da numeração da parte 2.
 - **RF27 — Caixa de pergunta:** Enter envia, Shift+Enter quebra linha; contador de caracteres perto do limite; botão desabilitado enquanto responde.
 - **RF28 — Tema e celular:** alternância claro/escuro lembrada no navegador; layout funcional a partir de 360 px de largura.
 - **RF29 — Acessibilidade:** contraste adequado nos dois temas, navegação por teclado, rótulos nos botões só com ícone.
+- **RF29a — Mascote:** um robô em SVG (azul, vermelho e prata) acompanha a conversa e reage a cada momento: acena na tela inicial; olha para a caixa enquanto a pessoa digita; antena piscando enquanto busca; boca falando enquanto escreve; feliz ao terminar, confuso no "não encontrei" e triste no erro, com um balão curto em cada reação (as reações duram 4 segundos). Os olhos seguem o ponteiro. Nas telas grandes fica ao lado do chat; nas pequenas, só a cabeça, junto da caixa de pergunta; a cabeça também é o avatar das respostas. É decorativo (`aria-hidden`) e respeita `prefers-reduced-motion`. Desliga com `interface.mascote: false`.
 
 **PDF**
 - **RF30 — Leitura de PDF:** `rag.py` lê `.md` e `.pdf` da pasta. O PDF é convertido para Markdown com `pymupdf4llm`; linhas que se repetem em mais da metade das páginas (cabeçalhos e rodapés) e números de página soltos são removidos. Depois disso, a divisão em trechos (RF7) e as fontes (RF12) funcionam igual, com `fonte` sendo o nome do `.pdf`.

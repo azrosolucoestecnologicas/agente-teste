@@ -1,7 +1,7 @@
 import { ArrowUpRight, Sparkles } from "lucide-react";
 
 // Tela inicial: apresentação e as perguntas de exemplo do config.yml
-export default function Sugestoes({ config, aoEscolher }) {
+export default function Sugestoes({ config, aoEscolher, mascote }) {
   return (
     <div className="relative flex-1 overflow-y-auto">
       <div
@@ -10,7 +10,9 @@ export default function Sugestoes({ config, aoEscolher }) {
       />
       <div className="relative mx-auto flex min-h-full max-w-3xl flex-col justify-center px-4 py-10">
         <div className="surgir text-center">
-          {config.logo_url ? (
+          {mascote ? (
+            mascote
+          ) : config.logo_url ? (
             <img
               src={config.logo_url}
               alt=""

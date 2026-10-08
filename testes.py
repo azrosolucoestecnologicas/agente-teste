@@ -174,11 +174,13 @@ interface = config.get("interface") or {}
 if not isinstance(interface, dict):
     erros.append("interface: precisa ser um bloco com campos (tema_inicial, rodape, ...)")
     interface = {}
-conhecidos = {"tema_inicial", "rodape", "limite_caracteres", "perguntas_por_minuto"}
+conhecidos = {"tema_inicial", "rodape", "limite_caracteres", "perguntas_por_minuto", "mascote"}
 for campo in sorted(set(interface) - conhecidos):
     erros.append(f"interface.{campo} não existe. Campos aceitos: {', '.join(sorted(conhecidos))}")
 if "tema_inicial" in interface and interface["tema_inicial"] not in {"claro", "escuro", "sistema"}:
     erros.append("interface.tema_inicial precisa ser claro, escuro ou sistema")
+if "mascote" in interface and not isinstance(interface["mascote"], bool):
+    erros.append("interface.mascote precisa ser true ou false")
 if "rodape" in interface and not (isinstance(interface["rodape"], str) and 0 < len(interface["rodape"]) <= 200):
     erros.append("interface.rodape precisa ser um texto de até 200 caracteres")
 for campo, minimo, maximo in [("limite_caracteres", 200, 4000), ("perguntas_por_minuto", 1, 60)]:

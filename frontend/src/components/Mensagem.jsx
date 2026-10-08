@@ -3,6 +3,7 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import CartaoFonte from "./CartaoFonte.jsx";
+import Robo from "./Robo.jsx";
 
 function Pensando() {
   return (
@@ -65,7 +66,14 @@ function AvisoErro({ mensagem, aoTentarDeNovo }) {
   );
 }
 
-export default function Mensagem({ mensagem, aoTentarDeNovo }) {
+// A expressão do robô no avatar de cada resposta
+function avatarDoRobo({ status, naoEncontrado, limite }) {
+  if (status === "pensando" || status === "escrevendo") return status;
+  if (status === "erro") return limite ? "limite" : "triste";
+  return naoEncontrado ? "confuso" : "ocioso";
+}
+
+export default function Mensagem({ mensagem, aoTentarDeNovo, mascote }) {
   if (mensagem.role === "user") {
     return (
       <div className="surgir flex justify-end">
@@ -81,9 +89,15 @@ export default function Mensagem({ mensagem, aoTentarDeNovo }) {
 
   return (
     <div className="surgir flex gap-3">
-      <div className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-marca-500 to-destaque-600 text-white shadow-sm">
-        <Sparkles className="size-4" aria-hidden="true" />
-      </div>
+      {mascote ? (
+        <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700">
+          <Robo corpo={false} estado={avatarDoRobo(mensagem)} className="size-7" />
+        </div>
+      ) : (
+        <div className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-marca-500 to-destaque-600 text-white shadow-sm">
+          <Sparkles className="size-4" aria-hidden="true" />
+        </div>
+      )}
       <div className="min-w-0 flex-1 space-y-3">
         {status === "pensando" && <Pensando />}
 
