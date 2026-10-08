@@ -85,7 +85,7 @@ limite = LimitePorMinuto()
 
 
 def ip_do_visitante(request: Request) -> str:
-    """No Render, o IP real do visitante vem no cabeçalho X-Forwarded-For (o primeiro valor)."""
+    """Atrás do proxy do Railway, o IP real do visitante vem no cabeçalho X-Forwarded-For (o primeiro valor)."""
     encaminhado = request.headers.get("x-forwarded-for", "")
     return encaminhado.split(",")[0].strip() or (request.client.host if request.client else "desconhecido")
 
@@ -105,7 +105,8 @@ class Pergunta(BaseModel):
 @app.get("/api/saude")
 def saude():
     base = chat.base
-    corpo = {"versao": os.environ.get("RENDER_GIT_COMMIT", "dev"), "trechos_na_producao": base.trechos}
+    # O Railway informa o commit publicado em RAILWAY_GIT_COMMIT_SHA; localmente, "dev"
+    corpo = {"versao": os.environ.get("RAILWAY_GIT_COMMIT_SHA", "dev"), "trechos_na_producao": base.trechos}
     if not base.pronta:
         return JSONResponse({"status": "indisponivel", **corpo}, status_code=503)
     return {"status": "ok", **corpo}

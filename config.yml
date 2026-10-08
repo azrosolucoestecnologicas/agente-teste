@@ -21,7 +21,7 @@ logo: logo.svg
 logo_altura: 56
 
 # Provedores de IA, em ordem de preferência: provedor: modelo
-# O app usa só os que tiverem chave cadastrada no Render (serviço > Environment):
+# O app usa só os que tiverem chave cadastrada no Railway (serviço > Variables):
 #   openrouter -> OPENROUTER_API_KEY   (modelos em https://openrouter.ai/models, gratuitos terminam em ":free")
 #   anthropic  -> ANTHROPIC_API_KEY    (ex.: claude-haiku-4-5)
 #   openai     -> OPENAI_API_KEY       (ex.: gpt-5.4-mini)

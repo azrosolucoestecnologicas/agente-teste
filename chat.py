@@ -17,7 +17,7 @@ log = logging.getLogger("assistente")
 
 CONFIG = yaml.safe_load(Path("config.yml").read_text(encoding="utf-8"))
 
-# As chaves NÃO ficam no código: vêm das variáveis de ambiente do servidor (Environment do Render).
+# As chaves NÃO ficam no código: vêm das variáveis de ambiente do servidor (Variables do Railway).
 CHAVES = {
     "openrouter": "OPENROUTER_API_KEY",
     "anthropic": "ANTHROPIC_API_KEY",

@@ -15,8 +15,8 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     FASTEMBED_CACHE_PATH=/app/modelos
 
-# O front-end compilado entra primeiro: assim o Docker termina o estágio 1 antes de instalar o Python.
-# Rodando um de cada vez, o build cabe nos 512 MB do Render (em paralelo, estoura a memória).
+# O front-end compilado entra primeiro: o Docker termina o estágio 1 antes de instalar o Python
+# (uma etapa pesada de cada vez, o que poupa memória no build).
 COPY --from=frontend /frontend/dist ./frontend/dist
 
 COPY requirements.txt ./
@@ -33,5 +33,5 @@ COPY . .
 RUN useradd --create-home assistente && chown -R assistente /app
 USER assistente
 
-# O Render informa a porta na variável PORT
+# O Railway informa a porta na variável PORT
 CMD ["sh", "-c", "uvicorn servidor:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]

@@ -1,4 +1,4 @@
-name: Testar e publicar no Render
+name: Testar e publicar no Railway
 
 # Gatilhos: o que faz este processo começar
 on:
@@ -72,6 +72,9 @@ jobs:
         run: python avaliar.py
 
   # Job 3: publicação. Só roda num commit da main e se o "avaliar" passou.
+  # Promove o índice testado. O site novo vai para o ar pelo Railway, que está com "Wait for CI"
+  # ligado: ele só faz o deploy deste commit quando TODOS os jobs deste workflow passam,
+  # e só troca a versão no ar quando o health check (/api/saude) responde.
   publicar:
     needs: avaliar
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
@@ -92,42 +95,3 @@ jobs:
         run: |
           pip install supabase pyyaml
           python indexar.py --promover
-
-      - name: Pedir o deploy ao Render (Deploy Hook)
-        env:
-          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
-        run: |
-          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
-            echo "ERRO: cadastre o secret RENDER_DEPLOY_HOOK_URL (Render: serviço > Settings > Deploy Hook)."
-            exit 1
-          fi
-          # ref= pede ao Render exatamente o commit que passou no portão
-          curl -fsS -X POST "${RENDER_DEPLOY_HOOK_URL}&ref=${GITHUB_SHA}" > /dev/null
-          echo "Deploy do commit ${GITHUB_SHA} pedido ao Render."
-
-  # Job 4: confere o site no ar. Espera o Render responder com a versão deste commit.
-  verificar:
-    needs: publicar
-    runs-on: ubuntu-latest
-    env:
-      RENDER_URL: ${{ vars.RENDER_URL }}
-    steps:
-      - name: Esperar a versão nova no ar
-        run: |
-          if [ -z "$RENDER_URL" ]; then
-            echo "ERRO: cadastre a variável RENDER_URL (Settings > Secrets and variables > Actions > Variables)."
-            exit 1
-          fi
-          # A cada 20 segundos, por até 15 minutos (o primeiro build no Render é o mais lento)
-          for tentativa in $(seq 1 45); do
-            resposta=$(curl -s --max-time 15 "${RENDER_URL%/}/api/saude" || true)
-            echo "[$tentativa] $resposta"
-            if echo "$resposta" | grep -q '"status":"ok"' && echo "$resposta" | grep -q "\"versao\":\"${GITHUB_SHA}\""; then
-              echo "No ar: ${RENDER_URL} com o commit ${GITHUB_SHA}."
-              exit 0
-            fi
-            sleep 20
-          done
-          echo "ERRO: a versão ${GITHUB_SHA} não apareceu em ${RENDER_URL}/api/saude."
-          echo "Veja o log do deploy no painel do Render (Events e Logs)."
-          exit 1
